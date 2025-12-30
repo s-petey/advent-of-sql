@@ -1,0 +1,24 @@
+{
+  "name": "advent-sql",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "prepare": "effect-language-service patch",
+    "effect:list": "effect-solutions list",
+    "effect:show": "effect-solutions show project-setup tsconfig"
+  },
+  "devDependencies": {
+    "@effect/language-service": "^0.63.2",
+    "@types/bun": "latest",
+    "effect-solutions": "^0.4.13"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@effect/cli": "^0.73.0",
+    "@effect/platform": "^0.94.0",
+    "@effect/platform-bun": "^0.87.0"
+  }
+}
