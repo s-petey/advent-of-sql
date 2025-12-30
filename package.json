@@ -4,9 +4,10 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "prepare": "effect-language-service patch",
+    "wizard": "bun run index.ts --wizard",
     "effect:list": "effect-solutions list",
-    "effect:show": "effect-solutions show project-setup tsconfig"
+    "effect:show": "effect-solutions show project-setup tsconfig",
+    "prepare": "effect-language-service patch"
   },
   "devDependencies": {
     "@effect/language-service": "^0.63.2",
