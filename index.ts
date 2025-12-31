@@ -1,11 +1,25 @@
 import { Args, Command } from "@effect/cli";
-import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { FileSystem, Path } from "@effect/platform";
-import { Logger, Effect, Stream, Layer } from "effect";
-import * as fs from "node:fs";
-import * as Doc from "@effect/printer-ansi/AnsiDoc";
+import { BunContext, BunRuntime } from "@effect/platform-bun";
 import * as Ansi from "@effect/printer-ansi/Ansi";
+import * as Doc from "@effect/printer-ansi/AnsiDoc";
 import * as Color from "@effect/printer-ansi/Color";
+import { SqlClient } from "@effect/sql";
+import { PgClient } from "@effect/sql-pg";
+import { SQL } from "bun";
+import { Config, Effect, Either, Layer, Logger, Schema, Stream } from "effect";
+import * as fs from "node:fs";
+
+// Don't need to have this maybe, instead ENV?
+process.env.db_password = "postgres";
+
+const DatabaseLive = PgClient.layerConfig({
+  password: Config.redacted("db_password"),
+  username: Config.succeed("postgres"),
+  database: Config.succeed("postgres"),
+  host: Config.succeed("localhost"),
+  port: Config.succeed(5432),
+});
 
 // Helper function to render colored text
 const renderColor = (doc: Doc.AnsiDoc): string => {
@@ -26,6 +40,19 @@ const highlight = (text: string) =>
 const bold = (text: string) =>
   renderColor(Doc.annotate(Doc.text(text), Ansi.bold));
 const separator = (char: string, length: number) => info(char.repeat(length));
+
+class SQLError extends Schema.TaggedError<SQLError>()("SQLError", {}) {}
+
+// Check if PostgreSQL is available
+const checkPostgresConnection = Effect.tryPromise({
+  try: async () => {
+    const pg = new SQL("postgres://postgres:postgres@localhost:5432/postgres");
+    await pg`SELECT 1`;
+    await pg.close();
+    return true;
+  },
+  catch: () => new Error("PostgreSQL connection failed"),
+});
 
 // Get current date for defaults
 const now = new Date();
@@ -68,12 +95,33 @@ const newCommand = Command.make(
         // Create a basic template for the day file
         const template = `// Advent of SQL ${year} - Day ${day}
 
-async function main() {
+import { SqlClient } from "@effect/sql";
+import { PgClient } from "@effect/sql-pg";
+import { Config, Effect } from "effect";
+
+// Don't need to have this maybe, instead ENV?
+process.env.db_password = "postgres";
+
+const DatabaseLive = PgClient.layerConfig({
+  password: Config.redacted("db_password"),
+  username: Config.succeed("postgres"),
+  database: Config.succeed("postgres"),
+  host: Config.succeed("localhost"),
+  port: Config.succeed(5432),
+});
+
+const program = Effect.gen(function* () {
+  const sql = yield* SqlClient.SqlClient;
+  
   // TODO: Implement solution
   console.log("Hello, Advent of SQL ${year} Day ${day}!");
-}
+  
+  // Example query:
+  // const result = yield* sql\`SELECT * FROM table_name\`;
+  // console.table(result);
+});
 
-main();
+program.pipe(Effect.provide(DatabaseLive), Effect.runPromise);
 `;
         yield* fs.writeFileString(dayFile, template);
         yield* Effect.log(success(`Created file: ${year}/${day}.ts`));
@@ -182,25 +230,50 @@ const watchCommand = Command.make(
 
       // Function to reset the database
       const resetDB = Effect.gen(function* () {
-        yield* Effect.log("\n\n" + separator("=", 50));
+        yield* Effect.log(separator("=", 50));
         yield* Effect.log(warning("DATABASE RESET"));
         yield* Effect.log(separator("=", 50));
 
-        const dbFile = path.join(cwd, year.toString(), `day${day}.db`);
-        const dbFileExists = yield* fileSystem.exists(dbFile);
+        // Check PostgreSQL connection
+        const pgConnected = yield* Effect.either(checkPostgresConnection);
 
-        if (dbFileExists) {
-          yield* Effect.tryPromise({
-            try: async () => {
-              await Bun.write(dbFile, "");
-            },
-            catch: (error) => new Error(`Failed to clear database: ${error}`),
-          });
+        if (Either.isLeft(pgConnected)) {
+          yield* Effect.log(error("✗ PostgreSQL connection failed"));
           yield* Effect.log(
-            success(`✓ Database file cleared: ${year}/day${day}.db`)
+            info(
+              "Please start PostgreSQL and ensure it's running on localhost:5432"
+            )
+          );
+          yield* Effect.log(info("Default credentials: postgres/postgres"));
+          yield* Effect.log(
+            info("Press R again to retry after starting the database")
+          );
+          yield* Effect.log(separator("=", 50) + "\n");
+          return;
+        }
+
+        yield* Effect.log(success("✓ PostgreSQL connection successful"));
+
+        const sqlFile = path.join(cwd, year.toString(), `${day}.sql`);
+        const sqlFileExists = yield* fileSystem.exists(sqlFile);
+
+        if (sqlFileExists) {
+          // Read and execute SQL file
+          const sqlContent = yield* fileSystem.readFileString(sqlFile);
+          const sql = yield* SqlClient.SqlClient;
+
+          yield* sql.unsafe<{ result: number }>(`${sqlContent}`);
+
+          yield* Effect.log(
+            success(`✓ Database reset with: ${year}/${day}.sql`)
           );
         } else {
-          yield* Effect.log(info("No database file found to reset."));
+          yield* Effect.log(
+            info(`No SQL reset file found: ${year}/${day}.sql`)
+          );
+          yield* Effect.log(
+            info(`Run 'new ${day} ${year}' to create it first.`)
+          );
         }
 
         yield* Effect.log(separator("=", 50) + "\n");
@@ -321,6 +394,6 @@ const cli = Command.run(command, {
 });
 
 cli(process.argv).pipe(
-  Effect.provide(Layer.mergeAll(BunContext.layer, Logger.pretty)),
+  Effect.provide(Layer.mergeAll(DatabaseLive, BunContext.layer, Logger.pretty)),
   BunRuntime.runMain
 );
