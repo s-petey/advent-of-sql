@@ -222,6 +222,9 @@ const watchCommand = Command.make(
 
       yield* showHelp;
 
+      // Track if the last run failed
+      let hasError = false;
+
       // Enable raw mode for single keypress detection
       if (process.stdin.isTTY) {
         process.stdin.setRawMode(true);
@@ -285,15 +288,59 @@ const watchCommand = Command.make(
         yield* Effect.log(info(`Running Day ${day}, Year ${year}...`));
         yield* Effect.log(separator("=", 50));
 
-        yield* Effect.tryPromise({
-          try: async () => {
-            // Import with timestamp to bypass cache
-            await import(`${dayFile}?update=${Date.now()}`);
-          },
-          catch: (error) =>
-            new Error(`Failed to run ${year}/${day}.ts: ${error}`),
-        });
+        const result = yield* Effect.either(
+          Effect.tryPromise({
+            try: async () => {
+              // Set up a temporary unhandled rejection handler for this import
+              const unhandledRejections: Error[] = [];
+              const rejectionHandler = (reason: Error) => {
+                unhandledRejections.push(reason);
+              };
 
+              process.on("unhandledRejection", rejectionHandler);
+
+              try {
+                // Import with timestamp to bypass cache
+                await import(`${dayFile}?update=${Date.now()}`);
+
+                // Wait a bit for any async operations to complete
+                await new Promise((resolve) => setTimeout(resolve, 100));
+
+                // Check if any unhandled rejections occurred
+                if (unhandledRejections.length > 0) {
+                  throw unhandledRejections[0];
+                }
+              } finally {
+                process.off("unhandledRejection", rejectionHandler);
+              }
+            },
+            catch: (error) =>
+              new Error(`Failed to run ${year}/${day}.ts: ${error}`),
+          })
+        );
+
+        if (Either.isLeft(result)) {
+          hasError = true;
+          yield* Effect.log(separator("=", 50));
+          yield* Effect.log(error("✗ Program failed with error:"));
+          yield* Effect.log(error(String(result.left.message)));
+          yield* Effect.log(separator("=", 50));
+          yield* Effect.log(warning("⚠️  Watch mode paused due to error"));
+          yield* Effect.log(
+            info("   Fix the error and save the file to resume auto-running")
+          );
+          yield* Effect.log(info("   Or press:"));
+          yield* Effect.log(
+            highlight("     Enter") + "  - Manually re-run the current file"
+          );
+          yield* Effect.log(
+            highlight("     R    ") + "  - Reset database and re-run"
+          );
+          yield* Effect.log(separator("=", 50) + "\n");
+          return;
+        }
+
+        hasError = false;
         yield* showHelp;
       });
 
@@ -360,13 +407,25 @@ const watchCommand = Command.make(
       return yield* combinedStream.pipe(
         Stream.runForEach((event) => {
           if (event.type === "fileChange") {
+            // On file change, clear error state and re-run
+            if (hasError) {
+              hasError = false;
+              return Effect.gen(function* () {
+                yield* Effect.log(
+                  success("✓ File saved, resuming watch mode...")
+                );
+                yield* runFile;
+              });
+            }
             return runFile;
           } else if (event.type === "keyboard") {
             if (event.key === "\r" || event.key === "\n") {
-              // Enter key: re-run
+              // Enter key: re-run (manual override)
+              hasError = false;
               return runFile;
             } else if (event.key === "R") {
-              // Capital R: reset DB and re-run
+              // Capital R: reset DB and re-run (manual override)
+              hasError = false;
               return Effect.gen(function* () {
                 yield* resetDB;
                 yield* runFile;
