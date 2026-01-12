@@ -1,12 +1,16 @@
 {
   "compilerOptions": {
     // Environment setup & latest features
-    "lib": ["ESNext"],
-    // "target": "ESNext",
+    "lib": ["ESNext", "DOM"],
+    "target": "ESNext",
     // "module": "Preserve",
     // "moduleDetection": "force",
-    // "jsx": "react-jsx",
+
     "allowJs": true,
+    // For Tui
+    "jsx": "react-jsx",
+    "jsxImportSource": "@opentui/react",
+    "resolveJsonModule": true,
 
     // Bundler mode
     // "moduleResolution": "bundler",
@@ -36,7 +40,8 @@
     // "moduleResolution": "bundler",
     // "noEmit": true
     // // And for Libraries & Node.js Apps (Ts is compiler) -- cli tools
-    "module": "NodeNext",
+    "module": "preserve",
+    "moduleResolution": "Bundler",
 
     // Import handling
     "verbatimModuleSyntax": true,
@@ -50,7 +55,6 @@
     // Development
     "declarationMap": true,
     "sourceMap": true,
-    // "skipLibCheck": true,
     // Additional library settings
     "declaration": true,
     // "composite": true, // monorepos only
