@@ -7,6 +7,7 @@ import { StartView } from "./views/Start";
 import { NewView } from "./views/New";
 import { NewSuccessView } from "./views/NewSuccess";
 import { WatchView } from "./views/Watch";
+import { WatchDayView } from "./views/WatchDay";
 
 export interface AppProps {
     onQuit: () => void;
@@ -17,19 +18,27 @@ interface TableProps extends AppProps {
     year: number;
 }
 
-export type Actions = "new" | "watch" | "run" | "newSuccess";
+export type Actions = "new" | "watch" | "run" | "newSuccess" | "watchDay";
 export const ACTIONS: Actions[] = ["new", "run", "watch"];
+
+export interface SelectedDay {
+    day: number;
+    year: number;
+}
 
 export interface ContentProps extends AppProps {
     setFocus: Dispatch<SetStateAction<Actions>>;
     setView: Dispatch<SetStateAction<Actions | null>>;
+    setSelectedDay: Dispatch<SetStateAction<SelectedDay | null>>;
     focus: Actions;
     view: Actions | null;
+    selectedDay: SelectedDay | null;
 }
 
 export function App({ onQuit }: AppProps) {
     const [focus, setFocus] = useState<Actions>("new");
     const [view, setView] = useState<Actions | null>(null);
+    const [selectedDay, setSelectedDay] = useState<SelectedDay | null>(null);
 
     return (
         <Layout>
@@ -38,6 +47,8 @@ export function App({ onQuit }: AppProps) {
                 focus={focus}
                 setFocus={setFocus}
                 setView={setView}
+                setSelectedDay={setSelectedDay}
+                selectedDay={selectedDay}
                 onQuit={onQuit}
             />
         </Layout>
@@ -50,6 +61,8 @@ function Content({
     focus,
     setFocus,
     setView,
+    setSelectedDay,
+    selectedDay,
 }: ContentProps) {
     switch (view) {
         case "new":
@@ -59,6 +72,8 @@ function Content({
                     focus={focus}
                     setFocus={setFocus}
                     setView={setView}
+                    setSelectedDay={setSelectedDay}
+                    selectedDay={selectedDay}
                     onQuit={onQuit}
                 />
             );
@@ -69,6 +84,8 @@ function Content({
                     focus={focus}
                     setFocus={setFocus}
                     setView={setView}
+                    setSelectedDay={setSelectedDay}
+                    selectedDay={selectedDay}
                     onQuit={onQuit}
                 />
             );
@@ -79,6 +96,34 @@ function Content({
                     focus={focus}
                     setFocus={setFocus}
                     setView={setView}
+                    setSelectedDay={setSelectedDay}
+                    selectedDay={selectedDay}
+                    onQuit={onQuit}
+                />
+            );
+        case "watchDay":
+            if (selectedDay) {
+                return (
+                    <WatchDayView
+                        view={view}
+                        focus={focus}
+                        setFocus={setFocus}
+                        setView={setView}
+                        setSelectedDay={setSelectedDay}
+                        selectedDay={selectedDay}
+                        onQuit={onQuit}
+                    />
+                );
+            }
+            // Fall through to watch if no day selected
+            return (
+                <WatchView
+                    view={view}
+                    focus={focus}
+                    setFocus={setFocus}
+                    setView={setView}
+                    setSelectedDay={setSelectedDay}
+                    selectedDay={selectedDay}
                     onQuit={onQuit}
                 />
             );
@@ -92,6 +137,8 @@ function Content({
             focus={focus}
             setFocus={setFocus}
             setView={setView}
+            setSelectedDay={setSelectedDay}
+            selectedDay={selectedDay}
             onQuit={onQuit}
         />
     );

@@ -56,6 +56,7 @@ export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
     useKeyboard((key) => {
         if (key.name === "return") {
             handleSubmit();
+            return;
         }
 
         if (key.name === "tab") {

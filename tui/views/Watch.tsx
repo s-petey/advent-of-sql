@@ -16,7 +16,7 @@ const ROWS_PER_COLUMN = 6;
 
 type FocusMode = "days" | "year";
 
-export function WatchView({ onQuit, setView }: ContentProps) {
+export function WatchView({ onQuit, setView, setSelectedDay }: ContentProps) {
     const [days, setDays] = useState<DayOption[]>([]);
     const [availableYears, setAvailableYears] = useState<number[]>([]);
     const [currentYear, setCurrentYear] = useState(() =>
@@ -122,7 +122,9 @@ export function WatchView({ onQuit, setView }: ContentProps) {
             if (todayIndex >= 0) {
                 setSelectedIndex(todayIndex);
                 setFocusMode("days");
-                // TODO: Implement actual watch functionality for today
+                // Navigate to watchDay view for today
+                setSelectedDay({ day: todayDay, year: todayYear });
+                setView("watchDay");
             }
             return;
         }
@@ -145,7 +147,14 @@ export function WatchView({ onQuit, setView }: ContentProps) {
                 case "return":
                 case "w":
                     if (days.length > 0) {
-                        // TODO: Implement actual watch functionality
+                        const selectedDay = days[selectedIndex];
+                        if (selectedDay) {
+                            setSelectedDay({
+                                day: selectedDay.day,
+                                year: selectedDay.year,
+                            });
+                            setView("watchDay");
+                        }
                     }
                     break;
             }
@@ -206,9 +215,17 @@ export function WatchView({ onQuit, setView }: ContentProps) {
                 });
                 break;
             case "return":
-            case "w":
-                // TODO: Implement actual watch functionality
+            case "w": {
+                const selectedDay = days[selectedIndex];
+                if (selectedDay) {
+                    setSelectedDay({
+                        day: selectedDay.day,
+                        year: selectedDay.year,
+                    });
+                    setView("watchDay");
+                }
                 break;
+            }
         }
     });
 
