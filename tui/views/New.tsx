@@ -8,6 +8,15 @@ import { TextAttributes } from "@opentui/core";
 import { DateTime, Effect } from "effect";
 import { cliRuntime, CliTools } from "../runtime";
 
+// Tagged error result types for better error handling
+type CreateFileSuccess = { readonly _tag: "Success" };
+type CreateFileErrorResult =
+    | { readonly _tag: "FileExists"; readonly path: string }
+    | { readonly _tag: "FileCreation"; readonly message: string }
+    | { readonly _tag: "UnknownError"; readonly message: string };
+
+type CreateFileResult = CreateFileSuccess | CreateFileErrorResult;
+
 type ErrorFields = "day" | "year";
 type Day = [number, number];
 type Year = [number, number, number, number];
@@ -44,11 +53,7 @@ export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
     const [yearIdx, setYearIdx] = useState<0 | 1 | 2 | 3>(0);
     const [dayIdx, setDayIdx] = useState<0 | 1>(0);
 
-    const [lastKey, setLastKey] = useState("");
-
     useKeyboard((key) => {
-        setLastKey(key.name);
-
         if (key.name === "return") {
             handleSubmit();
         }
@@ -247,7 +252,6 @@ export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
             return;
         }
 
-        setLastKey("validate");
         setError({
             fields: [],
             message: "",
@@ -255,37 +259,67 @@ export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
 
         // Use the CliTools service from the runtime
         // The service is already provided by cliRuntime's layer
-        const result = await cliRuntime.runPromise(
+        const result: CreateFileResult = await cliRuntime.runPromise(
             Effect.gen(function* () {
                 // Yield the CliTools service - it's automatically available
                 // because cliRuntime was created with CliTools.Default layer
                 const cliTools = yield* CliTools;
 
-                return yield* cliTools.createFile({
+                yield* cliTools.createFile({
                     day: Number(day.join("")),
                     year: Number(year.join("")),
                 });
+
+                return { _tag: "Success" } as const;
             }).pipe(
-                // FIXME: Return errors I can handle IE string consts?
-                // Catch all errors and convert to a string message
-                Effect.catchAll((error) => Effect.succeed(error.message)),
+                // Handle specific error types with their tags
+                Effect.catchTag("FileExistsError", (error) =>
+                    Effect.succeed({
+                        _tag: "FileExists",
+                        path: error.path,
+                    } as const),
+                ),
+                Effect.catchTag("FileCreationError", (error) =>
+                    Effect.succeed({
+                        _tag: "FileCreation",
+                        message: error.message,
+                    } as const),
+                ),
+                // Catch any remaining errors
+                Effect.catchAll((error) =>
+                    Effect.succeed({
+                        _tag: "UnknownError",
+                        message:
+                            error instanceof Error
+                                ? error.message
+                                : "An unexpected error occurred",
+                    } as const),
+                ),
             ),
         );
 
-        setLastKey(result);
-
-        if (result !== "Created file!") {
+        if (result._tag !== "Success") {
+            let errorMessage: string;
+            switch (result._tag) {
+                case "FileExists":
+                    errorMessage = `File already exists: ${result.path}`;
+                    break;
+                case "FileCreation":
+                    errorMessage = `Failed to create file: ${result.message}`;
+                    break;
+                case "UnknownError":
+                    errorMessage = `Unexpected error: ${result.message}`;
+                    break;
+            }
             setError({
                 fields: [],
-                message: result,
+                message: errorMessage,
             });
             return;
         }
 
-        //TODO: route to watch page?
-        // setView("watch");
-
-        // TODO: Finish logic
+        // Navigate to success page
+        setView("newSuccess");
     }, [day, year]);
 
     return (

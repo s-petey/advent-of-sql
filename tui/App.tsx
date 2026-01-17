@@ -5,6 +5,7 @@ import { Footer, Header, Layout } from "./components/Layout";
 import { theme } from "./theme";
 import { StartView } from "./views/Start";
 import { NewView } from "./views/New";
+import { NewSuccessView } from "./views/NewSuccess";
 
 export interface AppProps {
     onQuit: () => void;
@@ -15,7 +16,7 @@ interface TableProps extends AppProps {
     year: number;
 }
 
-export type Actions = "new" | "watch" | "run";
+export type Actions = "new" | "watch" | "run" | "newSuccess";
 export const ACTIONS: Actions[] = ["new", "run", "watch"];
 
 export interface ContentProps extends AppProps {
@@ -53,6 +54,16 @@ function Content({
         case "new":
             return (
                 <NewView
+                    view={view}
+                    focus={focus}
+                    setFocus={setFocus}
+                    setView={setView}
+                    onQuit={onQuit}
+                />
+            );
+        case "newSuccess":
+            return (
+                <NewSuccessView
                     view={view}
                     focus={focus}
                     setFocus={setFocus}
