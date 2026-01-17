@@ -4,7 +4,6 @@ import { SqlClient } from "@effect/sql";
 import { PgClient } from "@effect/sql-pg";
 import { Config, Effect } from "effect";
 
-// Don't need to have this maybe, instead ENV?
 process.env.db_password = "postgres";
 
 const DatabaseLive = PgClient.layerConfig({
@@ -17,11 +16,11 @@ const DatabaseLive = PgClient.layerConfig({
 
 // Jordan's spreadsheet used:
 
-// Different task labels (e.g., “stage setup”, “choir”, “cocoa station”, “parking_support”)
-// Inconsistent time formats (“10AM”, “10 am”, “noon”, “2 PM”)
+// Different task labels (e.g., "stage setup", "choir", "cocoa station", "parking_support")
+// Inconsistent time formats ("10AM", "10 am", "noon", "2 PM")
 // Two brand-new roles he invented on the spot due to the storm: snow shoveling and handwarmer handout
 
-// Meanwhile, John’s official system stored:
+// Meanwhile, John's official system stored:
 // Job titles in standardized machine-friendly form (stage_setup, cocoa_station, etc.)
 // Timeslots in strict "HH:MM AM/PM" format
 // Extra columns Jordan never included, such as age_group and an unused code field
@@ -35,7 +34,7 @@ const DatabaseLive = PgClient.layerConfig({
 const program = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;
 
-  const standardizedRoles = yield* sql<{
+  const result = yield* sql<{
     role: string;
     combined_roles: string;
   }>`SELECT
@@ -76,7 +75,17 @@ const program = Effect.gen(function* () {
   FROM last_minute_signups
   ORDER BY volunteer_name
     `;
-  console.table(standardizedRoles);
+  return result;
 });
 
-program.pipe(Effect.provide(DatabaseLive), Effect.runPromise);
+// Export the program for the TUI to run
+export default program.pipe(Effect.provide(DatabaseLive));
+
+// Run directly when executed as a script
+if (import.meta.main) {
+  program.pipe(
+    Effect.provide(DatabaseLive),
+    Effect.tap((result) => Effect.sync(() => console.table(result))),
+    Effect.runPromise,
+  );
+}

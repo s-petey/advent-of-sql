@@ -4,7 +4,6 @@ import { SqlClient } from "@effect/sql";
 import { PgClient } from "@effect/sql-pg";
 import { Config, Effect } from "effect";
 
-// Don't need to have this maybe, instead ENV?
 process.env.db_password = "postgres";
 
 const DatabaseLive = PgClient.layerConfig({
@@ -16,12 +15,12 @@ const DatabaseLive = PgClient.layerConfig({
 });
 
 // Challenge?
-// “I need to know which toys children are asking for the most.
+// "I need to know which toys children are asking for the most.
 //  I know there's some issues with spelling or the extra spaces or
 //  the funny capitalization, but I just need to know what the children
 //  truly meant. Can you help me make a cleaned up list of each toy and
 //  how many children want it? Please sort it from the most popular to the least.
-//  The elves need to know what to build before it’s too late.”
+//  The elves need to know what to build before it's too late."
 const program = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;
 
@@ -31,7 +30,17 @@ const program = Effect.gen(function* () {
     FROM wish_list 
     GROUP BY 2
     ORDER BY 1 DESC`;
-  console.table(result);
+  return result;
 });
 
-program.pipe(Effect.provide(DatabaseLive), Effect.runPromise);
+// Export the program for the TUI to run
+export default program.pipe(Effect.provide(DatabaseLive));
+
+// Run directly when executed as a script
+if (import.meta.main) {
+  program.pipe(
+    Effect.provide(DatabaseLive),
+    Effect.tap((result) => Effect.sync(() => console.table(result))),
+    Effect.runPromise,
+  );
+}
