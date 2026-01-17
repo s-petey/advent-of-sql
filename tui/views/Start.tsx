@@ -37,6 +37,8 @@ export function StartView({ onQuit, focus, setFocus, setView }: ContentProps) {
                         return "watch";
                     case "watch":
                         return "new";
+                    default:
+                        return "new";
                 }
             });
         }
@@ -47,12 +49,19 @@ export function StartView({ onQuit, focus, setFocus, setView }: ContentProps) {
 
         switch (key.name) {
             case "n":
-                return setFocus("new");
+                setFocus("new");
+                setView("new");
+                return;
             case "r":
-                return setFocus("run");
+                setFocus("run");
+                setView("run");
+                return;
             case "w":
-                return setFocus("watch");
+                setFocus("watch");
+                setView("watch");
+                return;
             case "h":
+            case "left":
                 return setFocus((prev) => {
                     switch (prev) {
                         case "new":
@@ -61,10 +70,13 @@ export function StartView({ onQuit, focus, setFocus, setView }: ContentProps) {
                             return "new";
                         case "watch":
                             return "run";
+                        default:
+                            return "new";
                     }
                 });
 
             case "l":
+            case "right":
                 return setFocus((prev) => {
                     switch (prev) {
                         case "new":
@@ -72,6 +84,8 @@ export function StartView({ onQuit, focus, setFocus, setView }: ContentProps) {
                         case "run":
                             return "watch";
                         case "watch":
+                            return "new";
+                        default:
                             return "new";
                     }
                 });
@@ -127,30 +141,34 @@ export function StartView({ onQuit, focus, setFocus, setView }: ContentProps) {
                         fg: theme.Silver,
                     }}
                 >
-                    Use{" "}
-                    <strong
-                        style={{
-                            fg: theme["Autumn Ember"],
-                        }}
-                    >
-                        Tab
+                    <strong style={{ fg: theme["Autumn Ember"] }}>
+                        h l
                     </strong>{" "}
-                    to switch or{" "}
-                    <strong
-                        style={{
-                            fg: theme["Autumn Ember"],
-                        }}
-                    >
-                        Return
+                    or{" "}
+                    <strong style={{ fg: theme["Autumn Ember"] }}>
+                        Arrow keys
                     </strong>{" "}
-                    to select an action, or jump between them using{" "}
-                    <strong
-                        style={{
-                            fg: theme["Autumn Ember"],
-                        }}
-                    >
-                        {ACTIONS.map((v) => v.slice(0, 1)).join(" | ")}
-                    </strong>
+                    to navigate.{" "}
+                    <strong style={{ fg: theme["Autumn Ember"] }}>
+                        Enter
+                    </strong>{" "}
+                    to select.{" "}
+                    <strong style={{ fg: theme["Autumn Ember"] }}>
+                        n
+                    </strong>{" "}
+                    new{" "}
+                    <strong style={{ fg: theme["Autumn Ember"] }}>
+                        r
+                    </strong>{" "}
+                    run{" "}
+                    <strong style={{ fg: theme["Autumn Ember"] }}>
+                        w
+                    </strong>{" "}
+                    watch.{" "}
+                    <strong style={{ fg: theme["Autumn Ember"] }}>
+                        q
+                    </strong>{" "}
+                    to quit.
                 </text>
             </Footer>
         </>
