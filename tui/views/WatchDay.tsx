@@ -95,6 +95,9 @@ function ResultsTable({ columns, rows }: ResultsTableProps) {
         return <EmptyResults />;
     }
 
+    // Calculate column width as a percentage based on number of columns
+    const columnWidth = `${Math.floor(100 / columns.length)}%` as `${number}%`;
+
     return (
         <box
             style={{
@@ -115,15 +118,22 @@ function ResultsTable({ columns, rows }: ResultsTableProps) {
             >
                 {/* Header Row */}
                 {columns.map((col) => (
-                    <text
+                    <box
                         key={col}
                         style={{
-                            fg: theme["Toasted Almond"],
-                            attributes: TextAttributes.BOLD,
+                            width: columnWidth,
+                            overflow: "hidden",
                         }}
                     >
-                        {col}
-                    </text>
+                        <text
+                            style={{
+                                fg: theme["Toasted Almond"],
+                                attributes: TextAttributes.BOLD,
+                            }}
+                        >
+                            {col}
+                        </text>
+                    </box>
                 ))}
             </box>
 
@@ -150,9 +160,15 @@ function ResultsTable({ columns, rows }: ResultsTableProps) {
                         }}
                     >
                         {row.map((cell, j) => (
-                            <text key={j} style={{ fg: theme.Silver }}>
-                                {cell}
-                            </text>
+                            <box
+                                key={j}
+                                style={{
+                                    width: columnWidth,
+                                    overflow: "hidden",
+                                }}
+                            >
+                                <text style={{ fg: theme.Silver }}>{cell}</text>
+                            </box>
                         ))}
                     </box>
                 ))}
