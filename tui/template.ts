@@ -34,3 +34,14 @@ const program = Effect.gen(function* () {
 
 program.pipe(Effect.provide(DatabaseLive), Effect.runPromise);
 `;
+
+export const sqlTemplate = ({
+    year,
+    day,
+}: {
+    year: number;
+    day: number;
+}) => `-- Advent of SQL ${year} - Day ${day}
+-- Database Reset Script
+
+`;

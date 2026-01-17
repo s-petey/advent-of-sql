@@ -1,7 +1,7 @@
-import { Effect, Layer, ManagedRuntime, Schema } from "effect";
+import { Effect, Either, Layer, ManagedRuntime, Schema } from "effect";
 import { Path, FileSystem } from "@effect/platform";
 import { BunContext } from "@effect/platform-bun";
-import { template } from "./template";
+import { sqlTemplate, template } from "./template";
 
 // --- Errors ---
 
@@ -35,9 +35,11 @@ export class CliTools extends Effect.Service<CliTools>()("CliTools", {
                     const cwd = path.resolve();
                     const yearDir = path.join(cwd, year.toString());
                     const dayFile = path.join(yearDir, `${day}.ts`);
+                    const sqlFile = path.join(yearDir, `${day}.sql`);
 
                     const yearDirExists = yield* fs.exists(yearDir);
                     const dayFileExists = yield* fs.exists(dayFile);
+                    const sqlFileExists = yield* fs.exists(sqlFile);
 
                     if (dayFileExists) {
                         return yield* new FileExistsError({
@@ -45,19 +47,46 @@ export class CliTools extends Effect.Service<CliTools>()("CliTools", {
                         });
                     }
 
+                    if (sqlFileExists) {
+                        return yield* new FileExistsError({
+                            path: `${year}/${day}.sql`,
+                        });
+                    }
+
                     if (!yearDirExists) {
                         yield* fs.makeDirectory(yearDir);
                     }
 
-                    const writeResult = yield* fs
+                    const dayWriteResult = yield* fs
                         .writeFileString(dayFile, template({ year, day }))
                         .pipe(Effect.either);
 
-                    if (writeResult._tag === "Left") {
-                        // Cleanup if we created the directory
-                        if (!yearDirExists) {
-                            yield* fs.remove(yearDir);
-                        }
+                    // Create a basic SQL template for database reset
+                    const yearWriteResult = yield* fs
+                        .writeFileString(sqlFile, sqlTemplate({ year, day }))
+                        .pipe(Effect.either);
+
+                    if (
+                        Either.isLeft(dayWriteResult) ||
+                        Either.isLeft(yearWriteResult)
+                    ) {
+                        yield* Effect.ignore(
+                            Effect.gen(function* () {
+                                if (Either.isRight(dayWriteResult)) {
+                                    yield* fs.remove(dayFile);
+                                }
+
+                                if (Either.isRight(yearWriteResult)) {
+                                    yield* fs.remove(sqlFile);
+                                }
+
+                                // Cleanup if we created the directory
+                                if (!yearDirExists) {
+                                    yield* fs.remove(yearDir);
+                                }
+                            }),
+                        );
+
                         return yield* new FileCreationError({
                             message: "Failure to create file",
                         });
