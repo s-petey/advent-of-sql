@@ -2,51 +2,75 @@ import { Effect, Layer, ManagedRuntime, Schema } from "effect";
 import { Path, FileSystem } from "@effect/platform";
 import { BunContext } from "@effect/platform-bun";
 
-class FileExistsError extends Schema.TaggedError<FileExistsError>()(
+// --- Errors ---
+
+export class FileExistsError extends Schema.TaggedError<FileExistsError>()(
     "FileExistsError",
-    {},
+    {
+        path: Schema.String,
+    },
 ) {}
 
-// I'll try out this approach of making a "service program"
-export const cliToolsService = Effect.gen(function* () {
-    return {
-        createFile: ({ day, year }: { day: number; year: number }) =>
-            Effect.gen(function* () {
-                const fs = yield* FileSystem.FileSystem;
-                const path = yield* Path.Path;
-                const cwd = path.resolve();
+export class FileCreationError extends Schema.TaggedError<FileCreationError>()(
+    "FileCreationError",
+    {
+        message: Schema.String,
+    },
+) {}
 
-                const yearDir = path.join(cwd, year.toString());
-                const isYearDirNew = yield* fs.exists(yearDir);
-                const dayFile = path.join(yearDir, `${day}.ts`);
-                const dayFileExists = yield* fs.exists(dayFile);
-                if (dayFileExists) {
-                    return yield* new FileExistsError();
-                }
+// --- CliTools Service ---
 
-                if (!isYearDirNew) {
-                    yield* fs.makeDirectory(yearDir);
-                }
+// Define the service using Effect.Service class pattern
+// This creates a proper Context.Tag and Layer automatically
+export class CliTools extends Effect.Service<CliTools>()("CliTools", {
+    // Use 'effect' to define the service implementation with dependencies
+    effect: Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
 
-                const result = yield* Effect.try(() =>
-                    fs.writeFileString(dayFile, "// Your starting point"),
-                ).pipe(Effect.flatten, Effect.either);
+        return {
+            createFile: ({ day, year }: { day: number; year: number }) =>
+                Effect.gen(function* () {
+                    const cwd = path.resolve();
+                    const yearDir = path.join(cwd, year.toString());
+                    const dayFile = path.join(yearDir, `${day}.ts`);
 
-                if (result._tag === "Left" && isYearDirNew) {
-                    yield* fs.remove(yearDir);
-                    return "Failure to create file" as const;
-                }
+                    const yearDirExists = yield* fs.exists(yearDir);
+                    const dayFileExists = yield* fs.exists(dayFile);
 
-                return "Created file!" as const;
-            }),
-    };
-});
+                    if (dayFileExists) {
+                        return yield* new FileExistsError({
+                            path: `${year}/${day}.ts`,
+                        });
+                    }
 
-export type Tool = typeof cliToolsService;
+                    if (!yearDirExists) {
+                        yield* fs.makeDirectory(yearDir);
+                    }
 
-// OR something like this:
-// https://github.com/fernandoabolafio/repobase/blob/c3105983b382f4fcc01a2b2698970738b2c9f2ca/packages/engine/src/services/RepobaseEngine.ts
+                    const writeResult = yield* fs
+                        .writeFileString(dayFile, "// Your starting point")
+                        .pipe(Effect.either);
 
+                    if (writeResult._tag === "Left") {
+                        // Cleanup if we created the directory
+                        if (!yearDirExists) {
+                            yield* fs.remove(yearDir);
+                        }
+                        return yield* new FileCreationError({
+                            message: "Failure to create file",
+                        });
+                    }
+
+                    return "Created file!" as const;
+                }),
+        };
+    }),
+    // Declare dependencies - these will be bundled into Default layer
+    dependencies: [BunContext.layer],
+}) {}
+
+// TODO: Database for app running.
 // const DatabaseLive = PgClient.layerConfig({
 //     password: Config.redacted("db_password"),
 //     username: Config.succeed("postgres"),
@@ -55,10 +79,13 @@ export type Tool = typeof cliToolsService;
 //     port: Config.succeed(5432),
 // });
 
-// const MainLayer = Layer.provide(BunContext.layer);
-const MainLayer = Layer.mergeAll(
-    // DatabaseLive,
-    BunContext.layer,
-);
+// --- Layer Composition ---
 
-export const cliRuntime = ManagedRuntime.make(MainLayer); //.pipe(BunRuntime.runMain)
+// The main layer provides all dependencies for the CLI tools
+const MainLayer = Layer.mergeAll(BunContext.layer, CliTools.Default);
+
+// --- Managed Runtime ---
+
+// Create the managed runtime with the main layer
+// This runtime can be used to run effects with all services available
+export const cliRuntime = ManagedRuntime.make(MainLayer);

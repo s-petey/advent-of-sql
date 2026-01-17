@@ -4,9 +4,9 @@ import { useKeyboard } from "@opentui/react";
 import { theme } from "../theme";
 import { Button } from "../components/Button";
 import { Footer, Header } from "../components/Layout";
-import { KeyEvent, TextAttributes } from "@opentui/core";
-import { DateTime, Effect, Either } from "effect";
-import { cliRuntime } from "../runtime";
+import { TextAttributes } from "@opentui/core";
+import { DateTime, Effect } from "effect";
+import { cliRuntime, CliTools } from "../runtime";
 
 type ErrorFields = "day" | "year";
 type Day = [number, number];
@@ -32,13 +32,7 @@ function getDayTouple(dateToUse: Date) {
     return [one, two] satisfies Day;
 }
 
-export function NewView({
-    appTools,
-    onQuit,
-    focus,
-    setFocus,
-    setView,
-}: ContentProps) {
+export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
     const today = new Date();
     const [inputFocus, setInputFocus] = useState<"day" | "year">("day");
     const [day, setDay] = useState(getDayTouple(today));
@@ -259,24 +253,23 @@ export function NewView({
             message: "",
         });
 
-        // TODO: Move the above logic to effect / the tool?
-
+        // Use the CliTools service from the runtime
+        // The service is already provided by cliRuntime's layer
         const result = await cliRuntime.runPromise(
             Effect.gen(function* () {
-                // FIXME: There is likely a much better way to do this...
-                const methods = yield* appTools;
+                // Yield the CliTools service - it's automatically available
+                // because cliRuntime was created with CliTools.Default layer
+                const cliTools = yield* CliTools;
 
-                return yield* methods.createFile({
+                return yield* cliTools.createFile({
                     day: Number(day.join("")),
                     year: Number(year.join("")),
                 });
-
-                // if (Either.isLeft(result)) {
-                //   return ''
-                // }
-
-                // return result.right
-            }).pipe(Effect.catchAll((error) => Effect.succeed(error.message))),
+            }).pipe(
+                // FIXME: Return errors I can handle IE string consts?
+                // Catch all errors and convert to a string message
+                Effect.catchAll((error) => Effect.succeed(error.message)),
+            ),
         );
 
         setLastKey(result);
@@ -304,7 +297,7 @@ export function NewView({
                         attributes: TextAttributes.BOLD,
                     }}
                 >
-                    ADVENT-OF-SQL {` ${lastKey}`}
+                    ADVENT-OF-SQL
                 </text>
             </Header>
 

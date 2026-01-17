@@ -2,7 +2,6 @@ import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import { Effect, Schema } from "effect";
 import { App } from "./App";
-import { cliToolsService } from "./runtime";
 
 class RendererError extends Schema.TaggedError<RendererError>()(
     "RendererError",
@@ -23,19 +22,12 @@ const makeRenderer = Effect.gen(function* () {
     // We can have a separate CLI command for just running
     // a specific file directly...
 
-    // FIXME: Get CLI args for day / year
-    const today = new Date();
-    const year = today.getFullYear();
-    const day = today.getDate();
-
     function handleQuit() {
         renderer.destroy();
         process.exit(0);
     }
 
-    createRoot(renderer).render(
-        <App appTools={cliToolsService} onQuit={handleQuit} />,
-    );
+    createRoot(renderer).render(<App onQuit={handleQuit} />);
 
     return renderer;
 });
@@ -43,15 +35,10 @@ const makeRenderer = Effect.gen(function* () {
 Effect.runPromise(
     Effect.scoped(makeRenderer).pipe(
         Effect.tap(function* (renderer) {
-            yield* Effect.addFinalizer(
-                () => {
-                    // Effect.gen(function* ()
-                    renderer.destroy();
-                    process.exit(0);
-                },
-                // ),
-            );
+            yield* Effect.addFinalizer(() => {
+                renderer.destroy();
+                process.exit(0);
+            });
         }),
-        // Effect.provide(MainLayer)
     ),
 );
