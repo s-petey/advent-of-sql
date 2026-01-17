@@ -23,6 +23,7 @@
     "@effect/sql-pg": "^0.50.0",
     "@opentui/core": "^0.1.72",
     "@opentui/react": "^0.1.72",
+    "effect": "^3.19.14",
     "react": "^19.2.3"
   },
   "devDependencies": {

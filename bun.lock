@@ -13,6 +13,7 @@
         "@effect/sql-pg": "^0.50.0",
         "@opentui/core": "^0.1.72",
         "@opentui/react": "^0.1.72",
+        "effect": "^3.19.14",
         "react": "^19.2.3",
       },
       "devDependencies": {
@@ -251,7 +252,7 @@
 
     "diff": ["diff@8.0.2", "", {}, "sha512-sSuxWU5j5SR9QQji/o2qMvqRNYRDOcBTgsJ/DeCf4iSN4gW+gNMXM7wFIP+fdXZxoNiAnHUTGjCr+TSWXdRDKg=="],
 
-    "effect": ["effect@3.19.13", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "fast-check": "^3.23.1" } }, "sha512-8MZ783YuHRwHZX2Mmm+bpGxq+7XPd88sWwYAz2Ysry80sEKpftDZXs2Hg9ZyjESi1IBTNHF0oDKe0zJRkUlyew=="],
+    "effect": ["effect@3.19.14", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "fast-check": "^3.23.1" } }, "sha512-3vwdq0zlvQOxXzXNKRIPKTqZNMyGCdaFUBfMPqpsyzZDre67kgC1EEHDV4EoQTovJ4w5fmJW756f86kkuz7WFA=="],
 
     "effect-solutions": ["effect-solutions@0.4.13", "", { "dependencies": { "@effect/cli": "^0.72.1", "@effect/platform": "^0.93.3", "@effect/platform-bun": "^0.84.0", "effect": "^3.19.6", "gray-matter": "^4.0.3", "picocolors": "^1.1.1" }, "bin": { "effect-solutions": "bin.js" } }, "sha512-IN8QS04WIX4PEeaOJEzZUZQxX4w4X3Tt19H40rwE/yll3Om3KcTsiO0QuS71GJnumXAwOEmCNtT4uTtKBQLIHw=="],
 
@@ -454,6 +455,8 @@
     "effect-solutions/@effect/platform": ["@effect/platform@0.93.8", "", { "dependencies": { "find-my-way-ts": "^0.1.6", "msgpackr": "^1.11.4", "multipasta": "^0.2.7" }, "peerDependencies": { "effect": "^3.19.12" } }, "sha512-xTEy6fyTy4ijmFC3afKgtvYtn/JyPoIov4ZSUWJZUv3VeOcUPNGrrqG6IJlWkXs3NhvSywKv7wc1kw3epCQVZw=="],
 
     "effect-solutions/@effect/platform-bun": ["@effect/platform-bun@0.84.0", "", { "dependencies": { "@effect/platform-node-shared": "^0.54.0", "multipasta": "^0.2.7" }, "peerDependencies": { "@effect/cluster": "^0.53.0", "@effect/platform": "^0.93.3", "@effect/rpc": "^0.72.2", "@effect/sql": "^0.48.0", "effect": "^3.19.5" } }, "sha512-UscfsMYuc95jyjjii/waWtgRzncWtRlpj64vCwwAdA4LxKgflYFE5lqvrUEgB55s8DNLM/Gi2m0tWb7AHWmhOA=="],
+
+    "effect-solutions/effect": ["effect@3.19.13", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "fast-check": "^3.23.1" } }, "sha512-8MZ783YuHRwHZX2Mmm+bpGxq+7XPd88sWwYAz2Ysry80sEKpftDZXs2Hg9ZyjESi1IBTNHF0oDKe0zJRkUlyew=="],
 
     "image-q/@types/node": ["@types/node@16.9.1", "", {}, "sha512-QpLcX9ZSsq3YYUUnD3nFDY8H7wctAhQj/TFKL8Ya8v5fMm3CFXxo8zStsLAl780ltoYoo1WvKUVGBQK+1ifr7g=="],
 
