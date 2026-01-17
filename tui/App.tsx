@@ -5,8 +5,10 @@ import { Footer, Header, Layout } from "./components/Layout";
 import { theme } from "./theme";
 import { StartView } from "./views/Start";
 import { NewView } from "./views/New";
+import type { Tool } from "./runtime";
 
 export interface AppProps {
+    appTools: Tool;
     onQuit: () => void;
 }
 
@@ -18,13 +20,14 @@ interface TableProps extends AppProps {
 export type Actions = "new" | "watch" | "run";
 export const ACTIONS: Actions[] = ["new", "run", "watch"];
 
-export function App({ onQuit }: AppProps) {
+export function App({ appTools, onQuit }: AppProps) {
     const [focus, setFocus] = useState<Actions>("new");
     const [view, setView] = useState<Actions | null>(null);
 
     return (
         <Layout>
             <Content
+                appTools={appTools}
                 view={view}
                 focus={focus}
                 setFocus={setFocus}
@@ -42,11 +45,19 @@ export interface ContentProps extends AppProps {
     view: Actions | null;
 }
 
-function Content({ onQuit, view, focus, setFocus, setView }: ContentProps) {
+function Content({
+    appTools,
+    onQuit,
+    view,
+    focus,
+    setFocus,
+    setView,
+}: ContentProps) {
     switch (view) {
         case "new":
             return (
                 <NewView
+                    appTools={appTools}
                     view={view}
                     focus={focus}
                     setFocus={setFocus}
@@ -61,6 +72,7 @@ function Content({ onQuit, view, focus, setFocus, setView }: ContentProps) {
 
     return (
         <StartView
+            appTools={appTools}
             view={view}
             focus={focus}
             setFocus={setFocus}

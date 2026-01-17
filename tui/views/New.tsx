@@ -2,81 +2,247 @@ import { useCallback, useState } from "react";
 import type { ContentProps } from "../App";
 import { useKeyboard } from "@opentui/react";
 import { theme } from "../theme";
+import { Button } from "../components/Button";
 import { Footer, Header } from "../components/Layout";
 import { KeyEvent, TextAttributes } from "@opentui/core";
+import { DateTime, Effect, Either } from "effect";
+import { cliRuntime } from "../runtime";
 
-export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
+type ErrorFields = "day" | "year";
+type Day = [number, number];
+type Year = [number, number, number, number];
+
+function getYearTouple(dateToUse: Date) {
+    const [one = 0, two = 0, three = 0, four = 0] = dateToUse
+        .getFullYear()
+        .toString()
+        .split("")
+        .map(Number);
+
+    return [one, two, three, four] satisfies Year;
+}
+
+function getDayTouple(dateToUse: Date) {
+    const [one = 0, two = 0] = dateToUse
+        .getDate()
+        .toString()
+        .split("")
+        .map(Number);
+
+    return [one, two] satisfies Day;
+}
+
+export function NewView({
+    appTools,
+    onQuit,
+    focus,
+    setFocus,
+    setView,
+}: ContentProps) {
     const today = new Date();
     const [inputFocus, setInputFocus] = useState<"day" | "year">("day");
-    const [day, setDay] = useState(today.getDate().toString());
-    const [year, setYear] = useState(today.getFullYear().toString());
+    const [day, setDay] = useState(getDayTouple(today));
+    const [year, setYear] = useState<Year>(getYearTouple(today));
     const [error, setError] = useState<{
         message: string;
-        fields: ("day" | "year")[];
+        fields: ErrorFields[];
     }>();
+    const [yearIdx, setYearIdx] = useState<0 | 1 | 2 | 3>(0);
+    const [dayIdx, setDayIdx] = useState<0 | 1>(0);
+
+    const [lastKey, setLastKey] = useState("");
 
     useKeyboard((key) => {
+        setLastKey(key.name);
+
+        if (key.name === "return") {
+            handleSubmit();
+        }
+
         if (key.name === "tab") {
-            return setInputFocus((prev) => (prev === "day" ? "year" : "day"));
+            return setInputFocus((prev) => {
+                if (prev === "day") {
+                    setYearIdx(0);
+                    return "year";
+                }
+                setDayIdx(0);
+                return "day";
+            });
         }
 
         if (key.name === "q" || key.name === "escape") {
             return setView(null);
         }
-        
-        if (key.name === "up") {
+
+        if (key.name === "r") {
+            setYear(getYearTouple(today));
+            setDay(getDayTouple(today));
+            return;
+        }
+
+        if (key.name === "l" || key.name === "right") {
+            if (inputFocus === "day") {
+                return setDayIdx((prev) => (prev === 0 ? 1 : 0));
+            }
+
+            if (inputFocus === "year") {
+                return setYearIdx((prev) => {
+                    switch (prev) {
+                        case 0:
+                            return 1;
+                        case 1:
+                            return 2;
+                        case 2:
+                            return 3;
+                        case 3:
+                            return 0;
+                    }
+                });
+            }
+        }
+
+        if (key.name === "h" || key.name === "left") {
+            if (inputFocus === "day") {
+                return setDayIdx((prev) => (prev === 0 ? 1 : 0));
+            }
+
+            if (inputFocus === "year") {
+                return setYearIdx((prev) => {
+                    switch (prev) {
+                        case 0:
+                            return 3;
+                        case 1:
+                            return 0;
+                        case 2:
+                            return 1;
+                        case 3:
+                            return 2;
+                    }
+                });
+            }
+        }
+
+        if (key.name === "up" || key.name === "k") {
             if (inputFocus === "day") {
                 return setDay((prev) => {
-                    const maybeDay = Number(prev);
-                    if (Number.isNaN(maybeDay)) {
-                        return "0";
+                    const copiedDay: Day = [...prev];
+                    let part = 9;
+                    if (dayIdx === 0) {
+                        part = Math.min((copiedDay[dayIdx] ?? 0) + 1, 3);
+                    } else {
+                        part = Math.min((copiedDay[dayIdx] ?? 0) + 1, 9);
                     }
 
-                    return (maybeDay + 1).toString();
+                    copiedDay.splice(dayIdx, 1, part);
+                    return copiedDay;
+                });
+            }
+
+            if (inputFocus === "year") {
+                return setYear((prev) => {
+                    const copiedYear: Year = [...prev];
+                    const part = Math.min((copiedYear[yearIdx] ?? 0) + 1, 9);
+                    copiedYear.splice(yearIdx, 1, part);
+                    return copiedYear;
+                });
+            }
+        }
+
+        if (inputFocus === "year") {
+            if (key.name === "down" || key.name === "j") {
+                return setYear((prev) => {
+                    const copiedYear: Year = [...prev];
+                    const part = Math.max((copiedYear[yearIdx] ?? 1) - 1, 0);
+
+                    copiedYear.splice(yearIdx, 1, part);
+                    return copiedYear;
+                });
+            }
+
+            if (key.name === "backspace") {
+                return setYear((prev) => {
+                    const copiedYear: Year = [...prev];
+                    copiedYear.splice(yearIdx, 1, 0);
+
+                    return copiedYear;
+                });
+            }
+
+            const maybeNumber = Number(key.name);
+            if (!Number.isNaN(maybeNumber)) {
+                return setYear((prev) => {
+                    const copiedYear: Year = [...prev];
+                    copiedYear.splice(yearIdx, 1, maybeNumber);
+                    return copiedYear;
+                });
+            }
+        }
+
+        if (inputFocus === "day") {
+            if (key.name === "down" || key.name === "j") {
+                return setDay((prev) => {
+                    const copiedDay: Day = [...prev];
+                    let part = 9;
+                    if (dayIdx === 0) {
+                        part = Math.max((copiedDay[dayIdx] ?? 0) - 1, 0);
+                    } else {
+                        part = Math.max((copiedDay[dayIdx] ?? 0) - 1, 0);
+                    }
+
+                    copiedDay.splice(dayIdx, 1, part);
+                    return copiedDay;
+                });
+            }
+
+            if (key.name === "backspace") {
+                return setDay((prev) => {
+                    const copiedDay: Day = [...prev];
+                    copiedDay.splice(dayIdx, 1, 0);
+
+                    return copiedDay;
+                });
+            }
+
+            const maybeNumber = Number(key.name);
+            if (!Number.isNaN(maybeNumber)) {
+                return setDay((prev) => {
+                    const copiedDay: Day = [...prev];
+                    let part = 9;
+                    if (dayIdx === 0) {
+                        part = Math.min(maybeNumber, 3);
+                    } else {
+                        part = Math.min(maybeNumber, 9);
+                    }
+
+                    copiedDay.splice(dayIdx, 1, part);
+                    return copiedDay;
                 });
             }
         }
     });
 
-    function handleSetDay(newDay: string) {
-        if (newDay === "h") {
-            setDay("");
-            return setInputFocus("year");
-        }
-
-        if (newDay.endsWith("k")) {
-            return setDay((prev) => {
-                const maybeDay = Number(prev);
-                if (Number.isNaN(maybeDay)) {
-                    return "0";
-                }
-
-                return (maybeDay + 1).toString();
-            });
-        }
-
-        return setDay(newDay);
-    }
-
-    const handleSubmit = useCallback(() => {
+    const handleSubmit = useCallback(async () => {
         // TODO: Parse numbers and show error if invalid
         // otherwise create file and set top level day / year
-        const maybeDay = Number(day);
-        const maybeYear = Number(year);
+        // const maybeDay = Number(day);
+        // const maybeYear = Number(year);
         let errorMessage: string | null = null;
-        const errorFields: ("day" | "year")[] = [];
+        const errorFields = isValidDayYear(
+            Number(year.join("")),
+            Number(day.join("")),
+        );
 
-        if (Number.isNaN(maybeDay)) {
+        // FIXME: Validate date using effect?
+
+        if (errorFields.includes("day")) {
             errorMessage = "Day is an invalid number";
-            errorFields.push("day");
         }
-        if (Number.isNaN(maybeYear)) {
+        if (errorFields.includes("year")) {
             if (errorMessage !== null) {
                 errorMessage += " and Year is an invalid number";
             } else {
                 errorMessage = "Year is an invalid number";
             }
-            errorFields.push("year");
         }
 
         if (errorFields.length > 0 && errorMessage !== null) {
@@ -86,6 +252,45 @@ export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
             });
             return;
         }
+
+        setLastKey("validate");
+        setError({
+            fields: [],
+            message: "",
+        });
+
+        // TODO: Move the above logic to effect / the tool?
+
+        const result = await cliRuntime.runPromise(
+            Effect.gen(function* () {
+                // FIXME: There is likely a much better way to do this...
+                const methods = yield* appTools;
+
+                return yield* methods.createFile({
+                    day: Number(day.join("")),
+                    year: Number(year.join("")),
+                });
+
+                // if (Either.isLeft(result)) {
+                //   return ''
+                // }
+
+                // return result.right
+            }).pipe(Effect.catchAll((error) => Effect.succeed(error.message))),
+        );
+
+        setLastKey(result);
+
+        if (result !== "Created file!") {
+            setError({
+                fields: [],
+                message: result,
+            });
+            return;
+        }
+
+        //TODO: route to watch page?
+        // setView("watch");
 
         // TODO: Finish logic
     }, [day, year]);
@@ -99,7 +304,7 @@ export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
                         attributes: TextAttributes.BOLD,
                     }}
                 >
-                    ADVENT-OF-SQL
+                    ADVENT-OF-SQL {` ${lastKey}`}
                 </text>
             </Header>
 
@@ -124,41 +329,60 @@ export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
                         alignItems: "space-evenly",
                     }}
                 >
-                    <box
-                        border
+                    <Button
                         title="Day"
                         style={{
+                            flexDirection: "row",
                             width: 20,
                             height: 3,
-                            borderColor: theme.Silver,
+                            borderColor:
+                                inputFocus === "day"
+                                    ? theme["Toasted Almond"]
+                                    : theme.Silver,
                         }}
                     >
-                        <input
-                            placeholder="Day of file..."
-                            onChange={handleSetDay}
-                            onSubmit={handleSubmit}
-                            focused={inputFocus === "day"}
-                        />
-                    </box>
-                    <box
-                        border
+                        {day.map((char, idx) => (
+                            <text
+                                key={`${idx}-${char}`}
+                                fg={
+                                    dayIdx === idx
+                                        ? theme["Autumn Ember"]
+                                        : "white"
+                                }
+                            >
+                                {char}
+                            </text>
+                        ))}
+                    </Button>
+
+                    <Button
                         title="Year"
                         style={{
+                            flexDirection: "row",
                             width: 40,
                             height: 3,
-                            borderColor: theme.Silver,
+                            borderColor:
+                                inputFocus === "year"
+                                    ? theme["Toasted Almond"]
+                                    : theme.Silver,
                         }}
                     >
-                        <input
-                            placeholder="Year of file..."
-                            onInput={setYear}
-                            onSubmit={handleSubmit}
-                            focused={inputFocus === "year"}
-                        />
-                    </box>
+                        {year.map((char, idx) => (
+                            <text
+                                key={`${idx}-${char}`}
+                                fg={
+                                    yearIdx === idx
+                                        ? theme["Autumn Ember"]
+                                        : "white"
+                                }
+                            >
+                                {char}
+                            </text>
+                        ))}
+                    </Button>
                 </box>
 
-                {error?.fields.length ? (
+                {typeof error?.message === "string" ? (
                     <box
                         style={{
                             flexDirection: "row",
@@ -176,6 +400,7 @@ export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
                 ) : null}
             </box>
 
+            {/*TODO: Maybe make this into a commands table?*/}
             <Footer>
                 <box style={{ flexDirection: "column" }}>
                     <box style={{ flexDirection: "row" }}>
@@ -232,9 +457,25 @@ export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
                                     fg: theme["Autumn Ember"],
                                 }}
                             >
+                                &#8592; | h
+                            </strong>{" "}
+                            to move cursor left,{" "}
+                            <strong
+                                style={{
+                                    fg: theme["Autumn Ember"],
+                                }}
+                            >
+                                &#8594; | l
+                            </strong>{" "}
+                            to cursor right,{" "}
+                            <strong
+                                style={{
+                                    fg: theme["Autumn Ember"],
+                                }}
+                            >
                                 &#8593; | k
                             </strong>{" "}
-                            to increment value, or{" "}
+                            to increment value,{" "}
                             <strong
                                 style={{
                                     fg: theme["Autumn Ember"],
@@ -258,3 +499,24 @@ export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
         </>
     );
 }
+
+const DECEMBER = 12;
+const isValidDayYear = (year: number, day: number): ErrorFields[] => {
+    // DateTime.unsafeMake will roll over invalid dates (e.g. Feb 30 -> Mar 2)
+    const date = DateTime.unsafeMake({ year, month: DECEMBER, day });
+
+    // Convert back to parts to see what the date actually resolved to
+    const parts = DateTime.toParts(date);
+
+    const errors: ErrorFields[] = [];
+
+    if (parts.year !== year) {
+        errors.push("year");
+    }
+
+    if (parts.day !== day) {
+        errors.push("day");
+    }
+
+    return errors;
+};

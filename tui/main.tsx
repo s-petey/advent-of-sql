@@ -1,17 +1,13 @@
-import { BunContext } from "@effect/platform-bun";
-import { Effect, Layer, Schema } from "effect";
-
 import { createCliRenderer } from "@opentui/core";
-
 import { createRoot } from "@opentui/react";
-import { App, TableView } from "./App";
+import { Effect, Schema } from "effect";
+import { App } from "./App";
+import { cliToolsService } from "./runtime";
 
 class RendererError extends Schema.TaggedError<RendererError>()(
     "RendererError",
     {},
 ) {}
-
-const MainLayer = Layer.provide(BunContext.layer);
 
 const makeRenderer = Effect.gen(function* () {
     const renderer = yield* Effect.tryPromise({
@@ -37,7 +33,9 @@ const makeRenderer = Effect.gen(function* () {
         process.exit(0);
     }
 
-    createRoot(renderer).render(<App onQuit={handleQuit} />);
+    createRoot(renderer).render(
+        <App appTools={cliToolsService} onQuit={handleQuit} />,
+    );
 
     return renderer;
 });
