@@ -16,11 +16,11 @@ const ROWS_PER_COLUMN = 6;
 
 type FocusMode = "days" | "year";
 
-export function WatchView({ onQuit, setView, setSelectedDay }: ContentProps) {
+export function WatchView({ onQuit, setView, setSelectedDay, selectedDay }: ContentProps) {
     const [days, setDays] = useState<DayOption[]>([]);
     const [availableYears, setAvailableYears] = useState<number[]>([]);
     const [currentYear, setCurrentYear] = useState(() =>
-        new Date().getFullYear(),
+        selectedDay?.year ?? new Date().getFullYear(),
     );
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -61,7 +61,13 @@ export function WatchView({ onQuit, setView, setSelectedDay }: ContentProps) {
                 }),
             );
             setDays(result);
-            setSelectedIndex(0);
+            // Restore selected index if we have a previously selected day for this year
+            if (selectedDay && selectedDay.year === currentYear) {
+                const idx = result.findIndex((d) => d.day === selectedDay.day);
+                setSelectedIndex(idx >= 0 ? idx : 0);
+            } else {
+                setSelectedIndex(0);
+            }
             setLoading(false);
         };
         loadDays();
