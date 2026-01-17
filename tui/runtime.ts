@@ -30,6 +30,83 @@ export class CliTools extends Effect.Service<CliTools>()("CliTools", {
         const path = yield* Path.Path;
 
         return {
+            listAvailableDays: (year: number) =>
+                Effect.gen(function* () {
+                    const cwd = path.resolve();
+                    const yearDir = year.toString();
+                    const yearPath = path.join(cwd, yearDir);
+
+                    const dirExists = yield* fs.exists(yearPath);
+                    if (!dirExists) {
+                        return [];
+                    }
+
+                    const isDir = yield* fs
+                        .stat(yearPath)
+                        .pipe(Effect.map((s) => s.type === "Directory"));
+
+                    if (!isDir) {
+                        return [];
+                    }
+
+                    const availableDays: Array<{ day: number; year: number }> =
+                        [];
+
+                    const yearFiles = yield* fs.readDirectory(yearPath);
+                    const dayFiles = yearFiles.filter(
+                        (f) => /^\d+\.ts$/.test(f) && !f.endsWith(".sql"),
+                    );
+
+                    for (const dayFile of dayFiles) {
+                        const dayFilePath = path.join(yearPath, dayFile);
+                        const fileExists = yield* fs.exists(dayFilePath);
+
+                        if (!fileExists) continue;
+
+                        const result = Schema.decodeUnknownEither(
+                            Schema.NumberFromString.pipe(
+                                Schema.int(),
+                                Schema.between(1, 24),
+                            ),
+                        )(dayFile.replace(".ts", ""));
+
+                        if (Either.isRight(result)) {
+                            availableDays.push({
+                                day: result.right,
+                                year,
+                            });
+                        }
+                    }
+
+                    // Sort by day ascending
+                    return availableDays.sort((a, b) => a.day - b.day);
+                }),
+
+            listAvailableYears: () =>
+                Effect.gen(function* () {
+                    const cwd = path.resolve();
+                    const entries = yield* fs.readDirectory(cwd);
+
+                    // Find year directories (numeric names)
+                    const years: number[] = [];
+
+                    for (const entry of entries) {
+                        if (!/^\d{4}$/.test(entry)) continue;
+
+                        const yearPath = path.join(cwd, entry);
+                        const isDir = yield* fs
+                            .stat(yearPath)
+                            .pipe(Effect.map((s) => s.type === "Directory"));
+
+                        if (isDir) {
+                            years.push(parseInt(entry, 10));
+                        }
+                    }
+
+                    // Sort years descending (most recent first)
+                    return years.sort((a, b) => b - a);
+                }),
+
             createFile: ({ day, year }: { day: number; year: number }) =>
                 Effect.gen(function* () {
                     const cwd = path.resolve();

@@ -6,6 +6,7 @@ import { theme } from "./theme";
 import { StartView } from "./views/Start";
 import { NewView } from "./views/New";
 import { NewSuccessView } from "./views/NewSuccess";
+import { WatchView } from "./views/Watch";
 
 export interface AppProps {
     onQuit: () => void;
@@ -71,8 +72,17 @@ function Content({
                     onQuit={onQuit}
                 />
             );
-        case "run":
         case "watch":
+            return (
+                <WatchView
+                    view={view}
+                    focus={focus}
+                    setFocus={setFocus}
+                    setView={setView}
+                    onQuit={onQuit}
+                />
+            );
+        case "run":
             return <text>WIP</text>;
     }
 
