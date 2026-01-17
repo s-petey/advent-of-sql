@@ -25,6 +25,12 @@ export function WatchView({ onQuit, setView }: ContentProps) {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [focusMode, setFocusMode] = useState<FocusMode>("days");
+    const [warning, setWarning] = useState<string | null>(null);
+
+    // Get today's date info
+    const today = new Date();
+    const todayDay = today.getDate();
+    const todayYear = today.getFullYear();
 
     // Load available years on mount
     useEffect(() => {
@@ -80,18 +86,53 @@ export function WatchView({ onQuit, setView }: ContentProps) {
     };
 
     useKeyboard((key) => {
+        if (warning) {
+            setWarning(null);
+        }
+
         if (key.name === "q" || key.name === "escape") {
             return setView(null);
         }
 
-        // Tab to switch between day selection and year selection
+        if (key.name === "t") {
+            if (currentYear !== todayYear) {
+                if (availableYears.includes(todayYear)) {
+                    setCurrentYear(todayYear);
+                    setWarning(
+                        `Switched to ${todayYear}. Press t again to run today.`,
+                    );
+                } else {
+                    setWarning(
+                        `No files exist for ${todayYear}. Create day ${todayDay} first!`,
+                    );
+                }
+                return;
+            }
+
+            const todayExists = days.some((d) => d.day === todayDay);
+
+            if (!todayExists) {
+                setWarning(
+                    `Day ${todayDay} doesn't exist for ${todayYear}. Create it first!`,
+                );
+                return;
+            }
+
+            const todayIndex = days.findIndex((d) => d.day === todayDay);
+            if (todayIndex >= 0) {
+                setSelectedIndex(todayIndex);
+                setFocusMode("days");
+                // TODO: Implement actual watch functionality for today
+            }
+            return;
+        }
+
         if (key.name === "tab") {
             setFocusMode((prev) => (prev === "days" ? "year" : "days"));
             return;
         }
 
         if (focusMode === "year") {
-            // Year navigation mode - h/l or left/right to change year
             switch (key.name) {
                 case "h":
                 case "left":
@@ -103,7 +144,6 @@ export function WatchView({ onQuit, setView }: ContentProps) {
                     break;
                 case "return":
                 case "w":
-                    // Switch back to days and start watch if a day is selected
                     if (days.length > 0) {
                         // TODO: Implement actual watch functionality
                     }
@@ -112,62 +152,54 @@ export function WatchView({ onQuit, setView }: ContentProps) {
             return;
         }
 
-        // Day selection mode
         if (days.length === 0) return;
 
-        // Vim motions and arrow keys for navigation
-        // Grid is arranged as columns, so:
-        // - h/left: move left (previous column)
-        // - l/right: move right (next column)
-        // - j/down: move down (next row in same column)
-        // - k/up: move up (previous row in same column)
         switch (key.name) {
             case "h":
             case "left":
                 setSelectedIndex((prev) => {
-                    // Move left one column (subtract ROWS_PER_COLUMN)
                     const newIndex = prev - ROWS_PER_COLUMN;
                     if (newIndex >= 0) return newIndex;
-                    // Wrap to last column in same row
+
                     const row = prev % ROWS_PER_COLUMN;
                     const lastCol = Math.floor(
                         (days.length - 1) / ROWS_PER_COLUMN,
                     );
                     const wrappedIndex = lastCol * ROWS_PER_COLUMN + row;
+
                     return Math.min(wrappedIndex, days.length - 1);
                 });
                 break;
             case "l":
             case "right":
                 setSelectedIndex((prev) => {
-                    // Move right one column (add ROWS_PER_COLUMN)
                     const newIndex = prev + ROWS_PER_COLUMN;
                     if (newIndex < days.length) return newIndex;
-                    // Wrap to first column in same row
+
                     const row = prev % ROWS_PER_COLUMN;
+
                     return row < days.length ? row : 0;
                 });
                 break;
             case "j":
             case "down":
                 setSelectedIndex((prev) => {
-                    // Move down one row in same column
                     const col = Math.floor(prev / ROWS_PER_COLUMN);
                     const row = prev % ROWS_PER_COLUMN;
                     const newRow = (row + 1) % ROWS_PER_COLUMN;
                     const newIndex = col * ROWS_PER_COLUMN + newRow;
+
                     return newIndex < days.length ? newIndex : prev;
                 });
                 break;
             case "k":
             case "up":
                 setSelectedIndex((prev) => {
-                    // Move up one row in same column
                     const col = Math.floor(prev / ROWS_PER_COLUMN);
                     const row = prev % ROWS_PER_COLUMN;
                     const newRow = row === 0 ? ROWS_PER_COLUMN - 1 : row - 1;
                     const newIndex = col * ROWS_PER_COLUMN + newRow;
-                    // Check if this index exists, otherwise stay
+
                     return newIndex < days.length && newIndex >= 0
                         ? newIndex
                         : prev;
@@ -175,7 +207,6 @@ export function WatchView({ onQuit, setView }: ContentProps) {
                 break;
             case "return":
             case "w":
-                // Start watch mode (no action yet)
                 // TODO: Implement actual watch functionality
                 break;
         }
@@ -206,7 +237,7 @@ export function WatchView({ onQuit, setView }: ContentProps) {
                         fg: theme.Silver,
                     }}
                 >
-                    Watch Mode - {currentYear}
+                    Watch date picker - {currentYear}
                 </text>
             </Header>
 
@@ -214,9 +245,7 @@ export function WatchView({ onQuit, setView }: ContentProps) {
                 style={{
                     padding: 2,
                     flexDirection: "column",
-                    borderColor: isDaysFocused
-                        ? theme["Toasted Almond"]
-                        : theme["Charcoal Blue"],
+                    borderColor: theme["Charcoal Blue"],
                     margin: 4,
                     marginTop: 2,
                     marginBottom: 2,
@@ -257,8 +286,12 @@ export function WatchView({ onQuit, setView }: ContentProps) {
                             flexDirection: "row",
                             gap: 4,
                             justifyContent: "center",
-                            height: ROWS_PER_COLUMN,
+                            borderColor: isDaysFocused
+                                ? theme["Toasted Almond"]
+                                : "transparent",
+                            padding: 1,
                         }}
+                        border={isDaysFocused}
                     >
                         {columns.map((column, colIdx) => (
                             <box
@@ -354,6 +387,17 @@ export function WatchView({ onQuit, setView }: ContentProps) {
                         &#x2192;
                     </text>
                 </box>
+
+                {warning && (
+                    <text
+                        style={{
+                            fg: theme["Blazing Flame"],
+                            marginBottom: 1,
+                        }}
+                    >
+                        {warning}
+                    </text>
+                )}
             </box>
 
             <Footer>
@@ -372,6 +416,8 @@ export function WatchView({ onQuit, setView }: ContentProps) {
                         Arrow keys
                     </strong>{" "}
                     to navigate.{" "}
+                    <strong style={{ fg: theme["Autumn Ember"] }}>t</strong> run
+                    today.{" "}
                     <strong style={{ fg: theme["Autumn Ember"] }}>
                         Enter | w
                     </strong>{" "}
