@@ -1,6 +1,7 @@
 import { Effect, Layer, ManagedRuntime, Schema } from "effect";
 import { Path, FileSystem } from "@effect/platform";
 import { BunContext } from "@effect/platform-bun";
+import { template } from "./template";
 
 // --- Errors ---
 
@@ -49,7 +50,7 @@ export class CliTools extends Effect.Service<CliTools>()("CliTools", {
                     }
 
                     const writeResult = yield* fs
-                        .writeFileString(dayFile, "// Your starting point")
+                        .writeFileString(dayFile, template({ year, day }))
                         .pipe(Effect.either);
 
                     if (writeResult._tag === "Left") {
