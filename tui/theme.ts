@@ -1,4 +1,3 @@
-// FIXME: standardize colors Primary / secondary / err / ect?
 export const theme = {
   "Toasted Almond": "#de9151",
   "Blazing Flame": "#f34213",

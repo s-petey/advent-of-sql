@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { ContentProps } from "../App";
 import { useKeyboard } from "@opentui/react";
 import { theme } from "../theme";
@@ -13,6 +13,8 @@ import {
     DatabaseResetError,
     type DayRunResult,
 } from "../runtime";
+import * as nodeFs from "node:fs";
+import * as path from "node:path";
 
 type WatchDayViewProps = ContentProps;
 
@@ -79,7 +81,9 @@ function EmptyResults() {
                 alignItems: "center",
             }}
         >
-            <text style={{ fg: theme.Silver }}>No data returned from query.</text>
+            <text style={{ fg: theme.Silver }}>
+                No data returned from query.
+            </text>
         </box>
     );
 }
@@ -199,16 +203,12 @@ function SuccessView({ data }: SuccessViewProps) {
     );
 }
 
-export function WatchDayView({
-    onQuit,
-    setView,
-    selectedDay,
-}: WatchDayViewProps) {
+export function WatchDayView({ setView, selectedDay }: WatchDayViewProps) {
     const day = selectedDay?.day ?? 1;
     const year = selectedDay?.year ?? new Date().getFullYear();
     const [runState, setRunState] = useState<RunState>({ type: "loading" });
 
-    const executeDay = async () => {
+    const executeDay = useCallback(async () => {
         setRunState({ type: "loading" });
 
         try {
@@ -238,9 +238,9 @@ export function WatchDayView({
                 message: String(error),
             });
         }
-    };
+    }, [day, year]);
 
-    const resetAndRerun = async () => {
+    const resetAndRerun = useCallback(async () => {
         setRunState({ type: "resetting" });
 
         try {
@@ -269,12 +269,33 @@ export function WatchDayView({
                 message: String(error),
             });
         }
-    };
+    }, [day, year, executeDay]);
 
     // Run the day file on mount
     useEffect(() => {
         executeDay();
-    }, [day, year]);
+    }, [executeDay]);
+
+    // Watch file for changes and auto-rerun
+    useEffect(() => {
+        const cwd = process.cwd();
+        const dayFilePath = path.join(cwd, year.toString(), `${day}.ts`);
+
+        // Check if file exists before watching
+        if (!nodeFs.existsSync(dayFilePath)) {
+            return;
+        }
+
+        const watcher = nodeFs.watch(dayFilePath, (eventType) => {
+            if (eventType === "change") {
+                executeDay();
+            }
+        });
+
+        return () => {
+            watcher.close();
+        };
+    }, [day, year, executeDay]);
 
     useKeyboard((key) => {
         if (key.name === "q" || key.name === "escape") {
@@ -283,18 +304,19 @@ export function WatchDayView({
 
         // Enter key to re-run
         if (key.name === "return") {
-            return executeDay();
+            executeDay();
+            return;
         }
 
         // r for reset database and re-run
         if (key.name === "r") {
-            return resetAndRerun();
+            resetAndRerun();
+            return;
         }
     });
 
     // Calculate row count for footer
-    const rowCount =
-        runState.type === "success" ? runState.data.length : 0;
+    const rowCount = runState.type === "success" ? runState.data.length : 0;
 
     return (
         <>
@@ -318,8 +340,12 @@ export function WatchDayView({
 
             {runState.type === "loading" && <LoadingView />}
             {runState.type === "resetting" && <ResettingView />}
-            {runState.type === "error" && <ErrorView message={runState.message} />}
-            {runState.type === "success" && <SuccessView data={runState.data} />}
+            {runState.type === "error" && (
+                <ErrorView message={runState.message} />
+            )}
+            {runState.type === "success" && (
+                <SuccessView data={runState.data} />
+            )}
 
             <Footer>
                 <text
@@ -338,6 +364,7 @@ export function WatchDayView({
                         fg: theme.Silver,
                     }}
                 >
+                    Watching for changes |{" "}
                     <strong style={{ fg: theme["Autumn Ember"] }}>Enter</strong>{" "}
                     to re-run |{" "}
                     <strong style={{ fg: theme["Autumn Ember"] }}>r</strong> to

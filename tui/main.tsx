@@ -14,14 +14,6 @@ const makeRenderer = Effect.gen(function* () {
         catch: () => new RendererError(),
     });
 
-    // FIXME: Start by prompting what file the user
-    // wants to run / create...
-    // Prompt for the day (default to today)
-    // Prompt for the year (default to this year)
-    // then create and run the file... (watch mode)
-    // We can have a separate CLI command for just running
-    // a specific file directly...
-
     function handleQuit() {
         renderer.destroy();
         process.exit(0);
@@ -32,13 +24,4 @@ const makeRenderer = Effect.gen(function* () {
     return renderer;
 });
 
-Effect.runPromise(
-    Effect.scoped(makeRenderer).pipe(
-        Effect.tap(function* (renderer) {
-            yield* Effect.addFinalizer(() => {
-                renderer.destroy();
-                process.exit(0);
-            });
-        }),
-    ),
-);
+Effect.runPromise(makeRenderer);

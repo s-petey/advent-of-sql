@@ -41,7 +41,7 @@ function getDayTouple(dateToUse: Date) {
     return [one, two] satisfies Day;
 }
 
-export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
+export function NewView({ setView }: ContentProps) {
     const today = new Date();
     const [inputFocus, setInputFocus] = useState<"day" | "year">("day");
     const [day, setDay] = useState(getDayTouple(today));
@@ -222,17 +222,11 @@ export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
     });
 
     const handleSubmit = useCallback(async () => {
-        // TODO: Parse numbers and show error if invalid
-        // otherwise create file and set top level day / year
-        // const maybeDay = Number(day);
-        // const maybeYear = Number(year);
         let errorMessage: string | null = null;
         const errorFields = isValidDayYear(
             Number(year.join("")),
             Number(day.join("")),
         );
-
-        // FIXME: Validate date using effect?
 
         if (errorFields.includes("day")) {
             errorMessage = "Day is an invalid number";
@@ -321,7 +315,7 @@ export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
 
         // Navigate to success page
         setView("newSuccess");
-    }, [day, year]);
+    }, [day, year, setView]);
 
     return (
         <>
@@ -428,7 +422,6 @@ export function NewView({ onQuit, focus, setFocus, setView }: ContentProps) {
                 ) : null}
             </box>
 
-            {/*TODO: Maybe make this into a commands table?*/}
             <Footer>
                 <box style={{ flexDirection: "column" }}>
                     <box style={{ flexDirection: "row" }}>

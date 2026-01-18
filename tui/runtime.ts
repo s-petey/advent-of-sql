@@ -81,7 +81,7 @@ export class CliTools extends Effect.Service<CliTools>()("CliTools", {
                         const result = Schema.decodeUnknownEither(
                             Schema.NumberFromString.pipe(
                                 Schema.int(),
-                                Schema.between(1, 24),
+                                Schema.between(1, 25),
                             ),
                         )(dayFile.replace(".ts", ""));
 
@@ -154,13 +154,13 @@ export class CliTools extends Effect.Service<CliTools>()("CliTools", {
                         .pipe(Effect.either);
 
                     // Create a basic SQL template for database reset
-                    const yearWriteResult = yield* fs
+                    const sqlWriteResult = yield* fs
                         .writeFileString(sqlFile, sqlTemplate({ year, day }))
                         .pipe(Effect.either);
 
                     if (
                         Either.isLeft(dayWriteResult) ||
-                        Either.isLeft(yearWriteResult)
+                        Either.isLeft(sqlWriteResult)
                     ) {
                         yield* Effect.ignore(
                             Effect.gen(function* () {
@@ -168,7 +168,7 @@ export class CliTools extends Effect.Service<CliTools>()("CliTools", {
                                     yield* fs.remove(dayFile);
                                 }
 
-                                if (Either.isRight(yearWriteResult)) {
+                                if (Either.isRight(sqlWriteResult)) {
                                     yield* fs.remove(sqlFile);
                                 }
 
@@ -323,15 +323,6 @@ export class DatabaseResetError extends Schema.TaggedError<DatabaseResetError>()
 
 // DayRunResult is now just an array of records returned from the SQL query
 export type DayRunResult = Record<string, unknown>[];
-
-// TODO: Database for app running.
-// const DatabaseLive = PgClient.layerConfig({
-//     password: Config.redacted("db_password"),
-//     username: Config.succeed("postgres"),
-//     database: Config.succeed("postgres"),
-//     host: Config.succeed("localhost"),
-//     port: Config.succeed(5432),
-// });
 
 // --- Layer Composition ---
 

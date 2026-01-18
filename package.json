@@ -1,40 +1,40 @@
 {
-  "name": "advent-sql",
-  "private": true,
-  "type": "module",
-  "module": "index.ts",
-  "scripts": {
-    "tui:dev": "bun run --watch tui/main.tsx",
-    "lint": "oxlint",
-    "lint:fix": "oxlint --fix",
-    "fix": "oxlint --fix && oxfmt",
-    "fix:check": "oxfmt --check",
-    "wizard": "bun run index.ts --wizard",
-    "effect:list": "effect-solutions list",
-    "effect:show": "effect-solutions show project-setup tsconfig",
-    "prepare": "effect-language-service patch"
-  },
-  "dependencies": {
-    "@effect/cli": "^0.73.0",
-    "@effect/platform": "^0.94.0",
-    "@effect/platform-bun": "^0.87.0",
-    "@effect/printer-ansi": "^0.47.0",
-    "@effect/sql": "^0.49.0",
-    "@effect/sql-pg": "^0.50.0",
-    "@opentui/core": "^0.1.72",
-    "@opentui/react": "^0.1.72",
-    "effect": "^3.19.14",
-    "react": "^19.2.3"
-  },
-  "devDependencies": {
-    "@effect/language-service": "^0.63.2",
-    "@types/bun": "latest",
-    "@types/react": "^19.2.8",
-    "effect-solutions": "^0.4.13",
-    "oxfmt": "^0.23.0",
-    "oxlint": "^1.38.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  }
+    "name": "advent-sql",
+    "private": true,
+    "type": "module",
+    "module": "index.ts",
+    "scripts": {
+        "tui": "bun run tui/main.tsx",
+        "lint": "oxlint",
+        "lint:fix": "oxlint --fix",
+        "fix": "oxlint --fix && oxfmt",
+        "fix:check": "oxfmt --check",
+        "wizard": "bun run index.ts --wizard",
+        "effect:list": "effect-solutions list",
+        "effect:show": "effect-solutions show project-setup tsconfig",
+        "prepare": "effect-language-service patch"
+    },
+    "dependencies": {
+        "@effect/cli": "^0.73.0",
+        "@effect/platform": "^0.94.0",
+        "@effect/platform-bun": "^0.87.0",
+        "@effect/printer-ansi": "^0.47.0",
+        "@effect/sql": "^0.49.0",
+        "@effect/sql-pg": "^0.50.0",
+        "@opentui/core": "^0.1.72",
+        "@opentui/react": "^0.1.72",
+        "effect": "^3.19.14",
+        "react": "^19.2.3"
+    },
+    "devDependencies": {
+        "@effect/language-service": "^0.63.2",
+        "@types/bun": "latest",
+        "@types/react": "^19.2.8",
+        "effect-solutions": "^0.4.13",
+        "oxfmt": "^0.23.0",
+        "oxlint": "^1.38.0"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    }
 }

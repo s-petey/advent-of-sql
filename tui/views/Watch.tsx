@@ -16,7 +16,7 @@ const ROWS_PER_COLUMN = 6;
 
 type FocusMode = "days" | "year";
 
-export function WatchView({ onQuit, setView, setSelectedDay, selectedDay }: ContentProps) {
+export function WatchView({ setView, setSelectedDay, selectedDay }: ContentProps) {
     const [days, setDays] = useState<DayOption[]>([]);
     const [availableYears, setAvailableYears] = useState<number[]>([]);
     const [currentYear, setCurrentYear] = useState(() =>
@@ -153,11 +153,11 @@ export function WatchView({ onQuit, setView, setSelectedDay, selectedDay }: Cont
                 case "return":
                 case "w":
                     if (days.length > 0) {
-                        const selectedDay = days[selectedIndex];
-                        if (selectedDay) {
+                        const dayToWatch = days[selectedIndex];
+                        if (dayToWatch) {
                             setSelectedDay({
-                                day: selectedDay.day,
-                                year: selectedDay.year,
+                                day: dayToWatch.day,
+                                year: dayToWatch.year,
                             });
                             setView("watchDay");
                         }
@@ -222,11 +222,11 @@ export function WatchView({ onQuit, setView, setSelectedDay, selectedDay }: Cont
                 break;
             case "return":
             case "w": {
-                const selectedDay = days[selectedIndex];
-                if (selectedDay) {
+                const dayToWatch = days[selectedIndex];
+                if (dayToWatch) {
                     setSelectedDay({
-                        day: selectedDay.day,
-                        year: selectedDay.year,
+                        day: dayToWatch.day,
+                        year: dayToWatch.year,
                     });
                     setView("watchDay");
                 }

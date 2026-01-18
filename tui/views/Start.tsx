@@ -7,24 +7,8 @@ import { useKeyboard } from "@opentui/react";
 
 export function StartView({ onQuit, focus, setFocus, setView }: ContentProps) {
     useKeyboard((key) => {
-        // Handle escape/quit in any mode
-        if (
-            key.name === "escape" ||
-            // (
-            key.name === "q"
-            //  && mode === "list"
-            // )
-        ) {
-            //   if (mode === "add" || mode === "search") {
-            //     setMode("list");
-            //     setInputValue("");
-            //   } else if (mode === "results") {
-            //     handleCloseResults();
-            //   } else if (mode === "confirmDelete") {
-            //     handleCancelDelete();
-            //   } else if (mode === "list") {
+        if (key.name === "escape" || key.name === "q") {
             onQuit();
-            //   }
             return;
         }
 
@@ -32,8 +16,6 @@ export function StartView({ onQuit, focus, setFocus, setView }: ContentProps) {
             return setFocus((curr) => {
                 switch (curr) {
                     case "new":
-                        return "run";
-                    case "run":
                         return "watch";
                     case "watch":
                         return "new";
@@ -52,10 +34,6 @@ export function StartView({ onQuit, focus, setFocus, setView }: ContentProps) {
                 setFocus("new");
                 setView("new");
                 return;
-            case "r":
-                setFocus("run");
-                setView("run");
-                return;
             case "w":
                 setFocus("watch");
                 setView("watch");
@@ -66,10 +44,8 @@ export function StartView({ onQuit, focus, setFocus, setView }: ContentProps) {
                     switch (prev) {
                         case "new":
                             return "watch";
-                        case "run":
-                            return "new";
                         case "watch":
-                            return "run";
+                            return "new";
                         default:
                             return "new";
                     }
@@ -80,8 +56,6 @@ export function StartView({ onQuit, focus, setFocus, setView }: ContentProps) {
                 return setFocus((prev) => {
                     switch (prev) {
                         case "new":
-                            return "run";
-                        case "run":
                             return "watch";
                         case "watch":
                             return "new";
@@ -120,14 +94,12 @@ export function StartView({ onQuit, focus, setFocus, setView }: ContentProps) {
                 <box style={{ flexDirection: "row", gap: 2 }}>
                     {ACTIONS.map((action) => (
                         <Button
-                            style={{
-                                ...(focus === action
-                                    ? {
-                                          borderColor: theme["Toasted Almond"],
-                                      }
-                                    : {}),
-                            }}
-                            onKeyDown={(e) => {}}
+                            key={action}
+                            style={
+                                focus === action
+                                    ? { borderColor: theme["Toasted Almond"] }
+                                    : {}
+                            }
                         >
                             <text>{action}</text>
                         </Button>
@@ -157,10 +129,6 @@ export function StartView({ onQuit, focus, setFocus, setView }: ContentProps) {
                         n
                     </strong>{" "}
                     new{" "}
-                    <strong style={{ fg: theme["Autumn Ember"] }}>
-                        r
-                    </strong>{" "}
-                    run{" "}
                     <strong style={{ fg: theme["Autumn Ember"] }}>
                         w
                     </strong>{" "}
