@@ -1,4 +1,10 @@
-// Advent of SQL 2025 - Day 10
+export const template = ({
+  year,
+  day,
+}: {
+  year: number;
+  day: number;
+}) => `// Advent of SQL ${year} - Day ${day}
 
 import { SqlClient } from "@effect/sql";
 import { PgClient } from "@effect/sql-pg";
@@ -14,22 +20,12 @@ const DatabaseLive = PgClient.layerConfig({
   port: Config.succeed(5432),
 });
 
-// Challenge?
-// "I need to know which toys children are asking for the most.
-//  I know there's some issues with spelling or the extra spaces or
-//  the funny capitalization, but I just need to know what the children
-//  truly meant. Can you help me make a cleaned up list of each toy and
-//  how many children want it? Please sort it from the most popular to the least.
-//  The elves need to know what to build before it's too late."
 const program = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;
 
-  const result = yield* sql`SELECT 
-    COUNT(*), 
-    LOWER(TRIM(wish_list.raw_wish)) as cleaned_wish 
-    FROM wish_list 
-    GROUP BY 2
-    ORDER BY 1 DESC`;
+  // TODO: Implement your SQL query here
+  // Return the result to display in the TUI
+  const result = yield* sql\`SELECT 1 as example\`;
   return result;
 });
 
@@ -44,3 +40,15 @@ if (import.meta.main) {
     Effect.runPromise,
   );
 }
+`;
+
+export const sqlTemplate = ({
+  year,
+  day,
+}: {
+  year: number;
+  day: number;
+}) => `-- Advent of SQL ${year} - Day ${day}
+-- Database Reset Script
+
+`;

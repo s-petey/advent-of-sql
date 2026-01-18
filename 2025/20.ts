@@ -4,7 +4,6 @@ import { SqlClient } from "@effect/sql";
 import { PgClient } from "@effect/sql-pg";
 import { Config, Effect } from "effect";
 
-// Don't need to have this maybe, instead ENV?
 process.env.db_password = "postgres";
 
 const DatabaseLive = PgClient.layerConfig({
@@ -58,7 +57,17 @@ const program = Effect.gen(function* () {
   AND score_avg < 0
   ORDER BY behavior_date ASC, child_name ASC
   `;
-  console.table(result);
+  return result;
 });
 
-program.pipe(Effect.provide(DatabaseLive), Effect.runPromise);
+// Export the program for the TUI to run
+export default program.pipe(Effect.provide(DatabaseLive));
+
+// Run directly when executed as a script
+if (import.meta.main) {
+  program.pipe(
+    Effect.provide(DatabaseLive),
+    Effect.tap((result) => Effect.sync(() => console.table(result))),
+    Effect.runPromise,
+  );
+}
