@@ -107,7 +107,7 @@ function Content({
           />
         );
       }
-      // Fall through to watch if no day selected
+
       return (
         <WatchView
           view={view}

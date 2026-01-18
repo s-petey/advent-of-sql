@@ -5,7 +5,8 @@ import { theme } from "../theme";
 import { Footer, Header } from "../components/Layout";
 import { TextAttributes } from "@opentui/core";
 import { Effect } from "effect";
-import { cliRuntime, CliTools } from "../runtime";
+import { cliRuntime } from "../runtime";
+import { CliTools } from "../runtime.core";
 
 interface DayOption {
   day: number;
@@ -27,12 +28,10 @@ export function WatchView({ setView, setSelectedDay, selectedDay }: ContentProps
   const [focusMode, setFocusMode] = useState<FocusMode>("days");
   const [warning, setWarning] = useState<string | null>(null);
 
-  // Get today's date info
   const today = new Date();
   const todayDay = today.getDate();
   const todayYear = today.getFullYear();
 
-  // Load available years on mount
   useEffect(() => {
     const loadYears = async () => {
       const years = await cliRuntime.runPromise(
@@ -42,7 +41,7 @@ export function WatchView({ setView, setSelectedDay, selectedDay }: ContentProps
         }),
       );
       setAvailableYears(years);
-      // If current year has no data, default to most recent year with data
+
       if (years.length > 0 && !years.includes(currentYear)) {
         setCurrentYear(years[0] ?? currentYear);
       }
@@ -50,7 +49,6 @@ export function WatchView({ setView, setSelectedDay, selectedDay }: ContentProps
     loadYears();
   }, []);
 
-  // Load days when year changes
   useEffect(() => {
     const loadDays = async () => {
       setLoading(true);
@@ -61,7 +59,7 @@ export function WatchView({ setView, setSelectedDay, selectedDay }: ContentProps
         }),
       );
       setDays(result);
-      // Restore selected index if we have a previously selected day for this year
+
       if (selectedDay && selectedDay.year === currentYear) {
         const idx = result.findIndex((d) => d.day === selectedDay.day);
         setSelectedIndex(idx >= 0 ? idx : 0);
@@ -122,7 +120,6 @@ export function WatchView({ setView, setSelectedDay, selectedDay }: ContentProps
       if (todayIndex >= 0) {
         setSelectedIndex(todayIndex);
         setFocusMode("days");
-        // Navigate to watchDay view for today
         setSelectedDay({ day: todayDay, year: todayYear });
         setView("watchDay");
       }
@@ -225,7 +222,6 @@ export function WatchView({ setView, setSelectedDay, selectedDay }: ContentProps
     }
   });
 
-  // Organize days into columns
   const columns: DayOption[][] = [];
   for (let i = 0; i < days.length; i += ROWS_PER_COLUMN) {
     columns.push(days.slice(i, i + ROWS_PER_COLUMN));
@@ -336,7 +332,6 @@ export function WatchView({ setView, setSelectedDay, selectedDay }: ContentProps
           </box>
         )}
 
-        {/* Year navigation */}
         <box
           style={{
             flexDirection: "row",

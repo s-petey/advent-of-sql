@@ -5,16 +5,15 @@ import { theme } from "../theme";
 import { Footer, Header } from "../components/Layout";
 import { TextAttributes } from "@opentui/core";
 import { Effect } from "effect";
-import {
-  cliRuntime,
-  CliTools,
-  DayFileNotFoundError,
-  DayExecutionError,
-  DatabaseResetError,
-  type DayRunResult,
-} from "../runtime";
+import { cliRuntime } from "../runtime";
 import * as nodeFs from "node:fs";
 import * as path from "node:path";
+import {
+  CliTools,
+  DayExecutionError,
+  DayFileNotFoundError,
+  type DayRunResult,
+} from "../runtime.core";
 
 type WatchDayViewProps = ContentProps;
 
@@ -24,7 +23,6 @@ type RunState =
   | { type: "success"; data: DayRunResult }
   | { type: "error"; message: string };
 
-// Loading state component
 function LoadingView() {
   return (
     <box
@@ -38,7 +36,6 @@ function LoadingView() {
   );
 }
 
-// Resetting database state component
 function ResettingView() {
   return (
     <box
@@ -52,7 +49,6 @@ function ResettingView() {
   );
 }
 
-// Error state component
 interface ErrorViewProps {
   message: string;
 }
@@ -72,7 +68,6 @@ function ErrorView({ message }: ErrorViewProps) {
   );
 }
 
-// Empty results component
 function EmptyResults() {
   return (
     <box
@@ -86,7 +81,6 @@ function EmptyResults() {
   );
 }
 
-// Results table component
 interface ResultsTableProps {
   columns: string[];
   rows: string[][];
@@ -97,7 +91,6 @@ function ResultsTable({ columns, rows }: ResultsTableProps) {
     return <EmptyResults />;
   }
 
-  // Calculate column width as a percentage based on number of columns
   const columnWidth = `${Math.floor(100 / columns.length)}%` as `${number}%`;
 
   return (
@@ -118,7 +111,6 @@ function ResultsTable({ columns, rows }: ResultsTableProps) {
           marginBottom: 1,
         }}
       >
-        {/* Header Row */}
         {columns.map((col) => (
           <box
             key={col}
@@ -176,7 +168,6 @@ function ResultsTable({ columns, rows }: ResultsTableProps) {
   );
 }
 
-// Success state component
 interface SuccessViewProps {
   data: DayRunResult;
 }
@@ -236,45 +227,52 @@ export function WatchDayView({ setView, selectedDay }: WatchDayViewProps) {
   const resetAndRerun = useCallback(async () => {
     setRunState({ type: "resetting" });
 
-    try {
-      const resetResult = await cliRuntime.runPromise(
-        Effect.gen(function* () {
-          const cliTools = yield* CliTools;
-          return yield* cliTools.resetDatabase({ day, year });
-        }),
-      );
+    const resetEffect = Effect.gen(function* () {
+      const cliTools = yield* CliTools;
+      yield* cliTools.resetDatabase({ day, year });
+      return { success: true } as const;
+    }).pipe(
+      Effect.catchTag("DatabaseResetError", (error) =>
+        Effect.succeed({
+          success: false,
+          error: error.message,
+        } as const),
+      ),
+      Effect.catchTag("SqlConnectionError", () =>
+        Effect.succeed({
+          success: false,
+          error: "PostgreSQL connection failed. Ensure it's running on localhost:5432",
+        } as const),
+      ),
+      Effect.catchAll((error) =>
+        Effect.succeed({
+          success: false,
+          error: String(error),
+        } as const),
+      ),
+    );
 
-      // Check if reset failed (it's an error object, not the success string)
-      if (resetResult !== "Database reset successful") {
-        const error = resetResult as DatabaseResetError;
-        setRunState({
-          type: "error",
-          message: error.message,
-        });
-        return;
-      }
+    const result = await cliRuntime.runPromise(resetEffect);
 
-      // Reset successful, now run the day file
-      await executeDay();
-    } catch (error) {
+    if (!result.success) {
       setRunState({
         type: "error",
-        message: String(error),
+        message: result.error,
       });
+      return;
     }
+
+    await executeDay();
   }, [day, year, executeDay]);
 
-  // Run the day file on mount
   useEffect(() => {
     executeDay();
   }, [executeDay]);
 
-  // Watch file for changes and auto-rerun
   useEffect(() => {
     const cwd = process.cwd();
     const dayFilePath = path.join(cwd, year.toString(), `${day}.ts`);
 
-    // Check if file exists before watching
     if (!nodeFs.existsSync(dayFilePath)) {
       return;
     }
@@ -295,20 +293,17 @@ export function WatchDayView({ setView, selectedDay }: WatchDayViewProps) {
       return setView("watch");
     }
 
-    // Enter key to re-run
     if (key.name === "return") {
       executeDay();
       return;
     }
 
-    // r for reset database and re-run
     if (key.name === "r") {
       resetAndRerun();
       return;
     }
   });
 
-  // Calculate row count for footer
   const rowCount = runState.type === "success" ? runState.data.length : 0;
 
   return (

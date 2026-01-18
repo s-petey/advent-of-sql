@@ -12,7 +12,6 @@ export function NewSuccessView({ onQuit, setView }: ContentProps) {
   const [focus, setFocus] = useState<ButtonFocus>("watch");
 
   useKeyboard((key) => {
-    // Navigation: H or left arrow to go left, L or right arrow to go right
     if (key.name === "h" || key.name === "left") {
       setFocus("watch");
       return;
@@ -23,19 +22,16 @@ export function NewSuccessView({ onQuit, setView }: ContentProps) {
       return;
     }
 
-    // Shortcuts: W for watch mode
     if (key.name === "w") {
       setView("watch");
       return;
     }
 
-    // Shortcuts: Q or ESC to exit
     if (key.name === "q" || key.name === "escape") {
       onQuit();
       return;
     }
 
-    // Return/Enter to select focused button
     if (key.name === "return") {
       if (focus === "watch") {
         setView("watch");

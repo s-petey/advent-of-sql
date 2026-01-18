@@ -6,9 +6,9 @@ import { Button } from "../components/Button";
 import { Footer, Header } from "../components/Layout";
 import { TextAttributes } from "@opentui/core";
 import { DateTime, Effect } from "effect";
-import { cliRuntime, CliTools } from "../runtime";
+import { cliRuntime } from "../runtime";
+import { CliTools } from "../runtime.core";
 
-// Tagged error result types for better error handling
 type CreateFileSuccess = { readonly _tag: "Success" };
 type CreateFileErrorResult =
   | { readonly _tag: "FileExists"; readonly path: string }
@@ -245,12 +245,8 @@ export function NewView({ setView }: ContentProps) {
       message: "",
     });
 
-    // Use the CliTools service from the runtime
-    // The service is already provided by cliRuntime's layer
     const result: CreateFileResult = await cliRuntime.runPromise(
       Effect.gen(function* () {
-        // Yield the CliTools service - it's automatically available
-        // because cliRuntime was created with CliTools.Default layer
         const cliTools = yield* CliTools;
 
         yield* cliTools.createFile({
@@ -260,7 +256,6 @@ export function NewView({ setView }: ContentProps) {
 
         return { _tag: "Success" } as const;
       }).pipe(
-        // Handle specific error types with their tags
         Effect.catchTag("FileExistsError", (error) =>
           Effect.succeed({
             _tag: "FileExists",
@@ -273,7 +268,6 @@ export function NewView({ setView }: ContentProps) {
             message: error.message,
           } as const),
         ),
-        // Catch any remaining errors
         Effect.catchAll((error) =>
           Effect.succeed({
             _tag: "UnknownError",
@@ -303,7 +297,6 @@ export function NewView({ setView }: ContentProps) {
       return;
     }
 
-    // Navigate to success page
     setView("newSuccess");
   }, [day, year, setView]);
 
@@ -493,12 +486,8 @@ export function NewView({ setView }: ContentProps) {
 
 const DECEMBER = 12;
 const isValidDayYear = (year: number, day: number): ErrorFields[] => {
-  // DateTime.unsafeMake will roll over invalid dates (e.g. Feb 30 -> Mar 2)
   const date = DateTime.unsafeMake({ year, month: DECEMBER, day });
-
-  // Convert back to parts to see what the date actually resolved to
   const parts = DateTime.toParts(date);
-
   const errors: ErrorFields[] = [];
 
   if (parts.year !== year) {

@@ -5,6 +5,9 @@
   "module": "index.ts",
   "scripts": {
     "tui": "bun run tui/main.tsx",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "check": "oxlint && tsc --noEmit",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "fix": "oxlint --fix && oxfmt",
@@ -28,11 +31,13 @@
   },
   "devDependencies": {
     "@effect/language-service": "^0.63.2",
+    "@effect/vitest": "^0.27.0",
     "@types/bun": "latest",
     "@types/react": "^19.2.8",
     "effect-solutions": "^0.4.13",
     "oxfmt": "^0.23.0",
-    "oxlint": "^1.38.0"
+    "oxlint": "^1.38.0",
+    "vitest": "^4.0.17"
   },
   "peerDependencies": {
     "typescript": "^5"
