@@ -1,9 +1,9 @@
 export const template = ({
-    year,
-    day,
+  year,
+  day,
 }: {
-    year: number;
-    day: number;
+  year: number;
+  day: number;
 }) => `// Advent of SQL ${year} - Day ${day}
 
 import { SqlClient } from "@effect/sql";
@@ -43,11 +43,11 @@ if (import.meta.main) {
 `;
 
 export const sqlTemplate = ({
-    year,
-    day,
+  year,
+  day,
 }: {
-    year: number;
-    day: number;
+  year: number;
+  day: number;
 }) => `-- Advent of SQL ${year} - Day ${day}
 -- Database Reset Script
 

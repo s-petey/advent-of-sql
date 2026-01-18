@@ -65,7 +65,7 @@ const program = Effect.gen(function* () {
       WHEN assigned_task ILIKE '%handwarmer%' THEN 'Handwarmer Handout'
       ELSE assigned_task
     END as role,
-    CASE 
+    CASE
       WHEN time_slot ILIKE '%noon%' THEN '12:00 PM'
       WHEN time_slot ILIKE '10 am%' THEN '10:00 AM'
       WHEN time_slot ILIKE '10AM%' THEN '10:00 AM'
